@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Usuario logueado - Genesys</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      max-width: 400px;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    .user {
+      font-size: 18px;
+      font-weight: bold;
+      color: #0b6cff;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Usuario Logueado</h2>
+    <div id="status">Cargando usuario...</div>
+  </div>
+
+  <!-- SDK oficial Genesys Cloud -->
+  <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
+
+  <script>
+    const platformClient = require('platformClient');
+    const client = platformClient.ApiClient.instance;
+    const usersApi = new platformClient.UsersApi();
+
+    // ⚠️ PON AQUÍ TU OAUTH CLIENT ID
+    const CLIENT_ID = "TU_CLIENT_ID_AQUI";
+
+    async function init() {
+      try {
+        // Obtener región automáticamente desde la URL
+        const params = new URLSearchParams(window.location.search);
+        const gcTargetEnv = params.get("gcTargetEnv");
+
+        if (gcTargetEnv) {
+          client.setEnvironment(gcTargetEnv);
+        }
+
+        // Login (si ya está logueado no pedirá credenciales)
+        await client.loginImplicitGrant(
+          CLIENT_ID,
+          window.location.origin + window.location.pathname
+        );
+
+        // Obtener usuario actual
+        const user = await usersApi.getUsersMe();
+
+        document.getElementById("status").innerHTML =
+          `<div class="user">${user.name}</div>
+           <div>${user.email}</div>`;
+
+      } catch (error) {
+        document.getElementById("status").innerText =
+          "Error obteniendo usuario: " + error;
+        console.error(error);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
