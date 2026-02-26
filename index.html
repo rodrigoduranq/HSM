@@ -3,139 +3,227 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Widget - Enviar Data Action</title>
+  <title>Genesys Widget - Ejecutar Data Action (sae1)</title>
   <style>
-    body { font-family: Inter, Roboto, Arial, sans-serif; padding: 18px; background:#f7f8fa; color:#222; }
-    .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(20,20,30,0.06); max-width:520px; margin:0 auto; }
+    body { font-family: Arial, sans-serif; padding: 18px; background:#f7f8fa; color:#222; }
+    .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(20,20,30,0.06); max-width:640px; margin:0 auto; }
+    h2 { margin: 0 0 10px 0; }
+    .muted { color:#6b7280; font-size:13px; margin: 6px 0 12px; }
     label { display:block; margin-top:12px; font-size:13px; color:#444; }
     input[type="text"] { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #d6dbe3; box-sizing:border-box; margin-top:6px; font-size:14px; }
-    .row { display:flex; gap:8px; }
-    .muted { color:#6b7280; font-size:13px; margin-top:6px; }
+    .row { display:flex; gap:10px; }
+    .row > div { flex: 1; }
     button { margin-top:16px; padding:10px 14px; border-radius:8px; border:0; background:#0b6cff; color:white; font-weight:600; cursor:pointer; }
     button:disabled { opacity:.6; cursor:not-allowed; }
-    pre { background:#f3f4f6; padding:10px; border-radius:6px; overflow:auto; font-size:13px; }
-    .status { margin-top:12px; font-size:13px; }
+    pre { background:#f3f4f6; padding:10px; border-radius:6px; overflow:auto; font-size:12px; }
+    .status { margin-top:12px; font-size:13px; white-space:pre-wrap; }
+    .ok { color:#065f46; }
+    .err { color:#b91c1c; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; font-size:12px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 <body>
-  <div class="card" role="region" aria-label="Widget para ejecutar Data Action">
-    <h2 style="margin:0 0 8px 0;">Enviar Data Action</h2>
-    <p class="muted">Rellena o modifica los valores (vienen con valores por defecto). Al pulsar <strong>Enviar</strong> se emitirá un mensaje al contenedor para ejecutar el Data Action.</p>
+  <div class="card" role="main">
+    <h2>Widget Genesys (sae1) <span class="pill">Client App</span></h2>
+    <div class="muted">
+      Región forzada: <code>apps.sae1.pure.cloud</code> / <code>api.sae1.pure.cloud</code><br/>
+      Ejecuta Data Action: <code>custom_-_4ae2533e-dbec-4148-8ccb-c204ee03a94f</code>
+    </div>
 
-    <form id="daForm" autocomplete="off">
-      <label for="id">id</label>
-      <input id="id" name="id" type="text" value="1817712608858479" required />
+    <div id="userBox" class="muted">Usuario: cargando…</div>
 
-      <label for="name">name</label>
-      <input id="name" name="name" type="text" value="test_genesys" required />
+    <form id="form" autocomplete="off">
+      <div class="row">
+        <div>
+          <label for="id">id</label>
+          <input id="id" name="id" type="text" value="1817712608858479" required />
+        </div>
+        <div>
+          <label for="name">name</label>
+          <input id="name" name="name" type="text" value="test_genesys" required />
+        </div>
+      </div>
 
-      <label for="from">from</label>
-      <input id="from" name="from" type="text" value="5491168690967" required />
+      <div class="row">
+        <div>
+          <label for="from">from</label>
+          <input id="from" name="from" type="text" value="5491168690967" required />
+        </div>
+        <div>
+          <label for="to">to</label>
+          <input id="to" name="to" type="text" value="5493517022819" required />
+        </div>
+      </div>
 
-      <label for="to">to</label>
-      <input id="to" name="to" type="text" value="5493517022819" required />
+      <div class="row">
+        <div>
+          <label for="nombre">nombre</label>
+          <input id="nombre" name="nombre" type="text" value="lean" required />
+        </div>
+        <div>
+          <label for="dato">dato</label>
+          <input id="dato" name="dato" type="text" value="holas" required />
+        </div>
+      </div>
 
-      <label for="nombre">nombre</label>
-      <input id="nombre" name="nombre" type="text" value="lean" required />
-
-      <label for="dato">dato</label>
-      <input id="dato" name="dato" type="text" value="holas" required />
-
-      <button id="sendBtn" type="button">Enviar</button>
+      <button id="btnEnviar" type="button">Enviar</button>
     </form>
 
-    <div class="status" id="status" aria-live="polite"></div>
+    <div id="status" class="status"></div>
 
     <details style="margin-top:12px;">
-      <summary style="cursor:pointer">Ver payload que se enviará</summary>
-      <pre id="payloadPreview">{ ... }</pre>
+      <summary style="cursor:pointer;">Ver payload</summary>
+      <pre id="payloadPreview">{}</pre>
     </details>
-
   </div>
+
+  <!-- SDK oficial Genesys Cloud -->
+  <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
 
   <script>
     (function () {
-      const form = document.getElementById('daForm');
-      const sendBtn = document.getElementById('sendBtn');
-      const statusEl = document.getElementById('status');
-      const preview = document.getElementById('payloadPreview');
+      // ====== CONFIGURACIÓN (AQUÍ VAN TUS "CREDENCIALES" DE OAUTH) ======
+      // Para frontend embebido: SOLO se usa el CLIENT ID.
+      // NO pongas Client Secret en HTML.
+      const OAUTH_CLIENT_ID = "PEGA_AQUI_TU_CLIENT_ID";
 
-      function buildPayload() {
-        const payload = {
-          // metadata para el host (nombre de la acción opcional)
-          invokeType: 'invokeDataAction',
-          actionName: document.getElementById('name').value || 'test_genesys',
-          parameters: {
-            id: document.getElementById('id').value,
-            name: document.getElementById('name').value,
-            from: document.getElementById('from').value,
-            to: document.getElementById('to').value,
-            nombre: document.getElementById('nombre').value,
-            dato: document.getElementById('dato').value
-          },
-          // timestamp para debugging
-          timestamp: new Date().toISOString()
+      // Región SAE1 (forzada)
+      const APPS_HOST = "https://apps.sae1.pure.cloud";
+      const API_BASE  = "https://api.sae1.pure.cloud";
+
+      // Data Action a ejecutar
+      const ACTION_ID = "custom_-_4ae2533e-dbec-4148-8ccb-c204ee03a94f";
+
+      // ====== SDK setup ======
+      const platformClient = require('platformClient');
+      const client = platformClient.ApiClient.instance;
+      const usersApi = new platformClient.UsersApi();
+      const integrationsApi = new platformClient.IntegrationsApi();
+
+      // ====== UI refs ======
+      const userBox = document.getElementById('userBox');
+      const statusEl = document.getElementById('status');
+      const btnEnviar = document.getElementById('btnEnviar');
+      const payloadPreview = document.getElementById('payloadPreview');
+      const form = document.getElementById('form');
+
+      function setStatusOk(msg) {
+        statusEl.className = "status ok";
+        statusEl.textContent = msg;
+      }
+      function setStatusErr(msg) {
+        statusEl.className = "status err";
+        statusEl.textContent = msg;
+      }
+
+      function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function forceRegion() {
+        // Forzar basePath a sae1
+        try { client.basePath = API_BASE; } catch (e) {}
+        try { if (typeof client.setBasePath === 'function') client.setBasePath(API_BASE); } catch (e) {}
+        // setEnvironment no siempre acepta URLs; intentamos igualmente
+        try { if (typeof client.setEnvironment === 'function') client.setEnvironment('sae1.pure.cloud'); } catch (e) {}
+      }
+
+      function buildParameters() {
+        return {
+          id: document.getElementById('id').value,
+          name: document.getElementById('name').value,
+          from: document.getElementById('from').value,
+          to: document.getElementById('to').value,
+          nombre: document.getElementById('nombre').value,
+          dato: document.getElementById('dato').value
         };
-        return payload;
+      }
+
+      function buildExecuteBody() {
+        return { parameters: buildParameters() };
       }
 
       function updatePreview() {
-        preview.textContent = JSON.stringify(buildPayload(), null, 2);
+        payloadPreview.textContent = JSON.stringify({
+          apiBase: API_BASE,
+          actionId: ACTION_ID,
+          body: buildExecuteBody()
+        }, null, 2);
       }
 
-      // actualizar vista inicial
-      updatePreview();
+      async function ensureAuth() {
+        if (!OAUTH_CLIENT_ID || OAUTH_CLIENT_ID === "PEGA_AQUI_TU_CLIENT_ID") {
+          throw new Error("Configura OAUTH_CLIENT_ID en el HTML (no es el secret, es el Client ID).");
+        }
 
-      // actualizar preview cuando cambian inputs
+        forceRegion();
+
+        // Redirect URI debe estar registrado en el OAuth Client
+        // Usamos la URL actual sin inventar rutas.
+        const redirectUri = window.location.origin + window.location.pathname;
+
+        // Si ya hay token, no reloguear
+        const token = (client.authData && client.authData.accessToken) ||
+                      (typeof client.getAccessToken === 'function' ? client.getAccessToken() : null);
+        if (token) return;
+
+        // Login: si ya está logueado en Genesys, normalmente no pedirá credenciales
+        await client.loginImplicitGrant(OAUTH_CLIENT_ID, redirectUri);
+      }
+
+      async function loadMe() {
+        await ensureAuth();
+        const me = await usersApi.getUsersMe();
+        userBox.innerHTML =
+          `Usuario: <strong>${escapeHtml(me.name)}</strong> · ID: <code>${escapeHtml(me.id)}</code>`;
+        return me;
+      }
+
+      async function executeDataAction() {
+        await ensureAuth();
+
+        const body = buildExecuteBody();
+        // Llama: POST /api/v2/integrations/actions/{actionId}/execute
+        const res = await integrationsApi.postIntegrationsActionExecute(ACTION_ID, body);
+        return res;
+      }
+
+      btnEnviar.addEventListener('click', async () => {
+        btnEnviar.disabled = true;
+        setStatusOk("Ejecutando Data Action…");
+        try {
+          const result = await executeDataAction();
+          setStatusOk("✅ Data Action ejecutado.\n" + JSON.stringify(result, null, 2));
+        } catch (e) {
+          setStatusErr("❌ Error ejecutando Data Action:\n" + (e && e.message ? e.message : String(e)));
+          console.error(e);
+        } finally {
+          btnEnviar.disabled = false;
+        }
+      });
+
       form.addEventListener('input', updatePreview);
 
-      sendBtn.addEventListener('click', function () {
-        const payload = buildPayload();
-        statusEl.textContent = '';
-
-        // 1) Enviar mensaje al contenedor (recomendado): el Client App debe escuchar mensajes postMessage y ejecutar el Data Action.
+      // init
+      (async () => {
+        updatePreview();
         try {
-          window.parent.postMessage(payload, '*'); // puedes reemplazar '*' por el origen del contenedor si lo conoces
-          statusEl.innerHTML = 'Mensaje enviado al contenedor para ejecutar el Data Action. (postMessage) ✅';
-        } catch (err) {
-          statusEl.innerHTML = 'Error enviando message al contenedor: ' + String(err);
-        }
-
-        // 2) (OPCIONAL) -- INVOCACIÓN DIRECTA VIA REST
-        // Si quieres que el widget intente invocar el Data Action directamente, puedes descomentar el bloque
-        // y configurar DATA_ACTION_URL y AUTH_TOKEN apropiadamente. Ten en cuenta CORS y seguridad:
-        //
-        // fetch(DATA_ACTION_URL, {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'Authorization': 'Bearer YOUR_OAUTH_TOKEN_HERE' // reemplazar
-        //   },
-        //   body: JSON.stringify(payload.parameters)
-        // })
-        // .then(r => r.json())
-        // .then(result => {
-        //   // manejar la respuesta del Data Action
-        //   statusEl.innerHTML += '<br>Respuesta directa del Data Action: ' + JSON.stringify(result);
-        // })
-        // .catch(err => {
-        //   statusEl.innerHTML += '<br>Error en invocación directa: ' + String(err);
-        // });
-
-      });
-
-      // Seguridad/Debug: escucha respuestas del host si el host responde con postMessage
-      window.addEventListener('message', function (ev) {
-        // En un entorno real deberías validar ev.origin
-        try {
-          const data = ev.data || {};
-          if (data && data.replyFor && data.replyFor === 'invokeDataAction') {
-            statusEl.innerHTML = 'Respuesta del contenedor: ' + JSON.stringify(data, null, 2);
-          }
+          await loadMe();
+          setStatusOk("Listo ✅ (usuario cargado).");
         } catch (e) {
-          // ignore
+          setStatusErr("❌ No se pudo autenticar/cargar usuario.\n" + (e && e.message ? e.message : String(e)));
+          console.error(e);
         }
-      });
+      })();
+
+      console.log("Apps host:", APPS_HOST, "API base:", API_BASE);
     })();
   </script>
 </body>
