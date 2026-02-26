@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Widget - Enviar Data Action</title>
+  <style>
+    body { font-family: Inter, Roboto, Arial, sans-serif; padding: 18px; background:#f7f8fa; color:#222; }
+    .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(20,20,30,0.06); max-width:520px; margin:0 auto; }
+    label { display:block; margin-top:12px; font-size:13px; color:#444; }
+    input[type="text"] { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #d6dbe3; box-sizing:border-box; margin-top:6px; font-size:14px; }
+    .row { display:flex; gap:8px; }
+    .muted { color:#6b7280; font-size:13px; margin-top:6px; }
+    button { margin-top:16px; padding:10px 14px; border-radius:8px; border:0; background:#0b6cff; color:white; font-weight:600; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    pre { background:#f3f4f6; padding:10px; border-radius:6px; overflow:auto; font-size:13px; }
+    .status { margin-top:12px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="card" role="region" aria-label="Widget para ejecutar Data Action">
+    <h2 style="margin:0 0 8px 0;">Enviar Data Action</h2>
+    <p class="muted">Rellena o modifica los valores (vienen con valores por defecto). Al pulsar <strong>Enviar</strong> se emitirá un mensaje al contenedor para ejecutar el Data Action.</p>
+
+    <form id="daForm" autocomplete="off">
+      <label for="id">id</label>
+      <input id="id" name="id" type="text" value="1817712608858479" required />
+
+      <label for="name">name</label>
+      <input id="name" name="name" type="text" value="test_genesys" required />
+
+      <label for="from">from</label>
+      <input id="from" name="from" type="text" value="5491168690967" required />
+
+      <label for="to">to</label>
+      <input id="to" name="to" type="text" value="5493517022819" required />
+
+      <label for="nombre">nombre</label>
+      <input id="nombre" name="nombre" type="text" value="lean" required />
+
+      <label for="dato">dato</label>
+      <input id="dato" name="dato" type="text" value="holas" required />
+
+      <button id="sendBtn" type="button">Enviar</button>
+    </form>
+
+    <div class="status" id="status" aria-live="polite"></div>
+
+    <details style="margin-top:12px;">
+      <summary style="cursor:pointer">Ver payload que se enviará</summary>
+      <pre id="payloadPreview">{ ... }</pre>
+    </details>
+
+  </div>
+
+  <script>
+    (function () {
+      const form = document.getElementById('daForm');
+      const sendBtn = document.getElementById('sendBtn');
+      const statusEl = document.getElementById('status');
+      const preview = document.getElementById('payloadPreview');
+
+      function buildPayload() {
+        const payload = {
+          // metadata para el host (nombre de la acción opcional)
+          invokeType: 'invokeDataAction',
+          actionName: document.getElementById('name').value || 'test_genesys',
+          parameters: {
+            id: document.getElementById('id').value,
+            name: document.getElementById('name').value,
+            from: document.getElementById('from').value,
+            to: document.getElementById('to').value,
+            nombre: document.getElementById('nombre').value,
+            dato: document.getElementById('dato').value
+          },
+          // timestamp para debugging
+          timestamp: new Date().toISOString()
+        };
+        return payload;
+      }
+
+      function updatePreview() {
+        preview.textContent = JSON.stringify(buildPayload(), null, 2);
+      }
+
+      // actualizar vista inicial
+      updatePreview();
+
+      // actualizar preview cuando cambian inputs
+      form.addEventListener('input', updatePreview);
+
+      sendBtn.addEventListener('click', function () {
+        const payload = buildPayload();
+        statusEl.textContent = '';
+
+        // 1) Enviar mensaje al contenedor (recomendado): el Client App debe escuchar mensajes postMessage y ejecutar el Data Action.
+        try {
+          window.parent.postMessage(payload, '*'); // puedes reemplazar '*' por el origen del contenedor si lo conoces
+          statusEl.innerHTML = 'Mensaje enviado al contenedor para ejecutar el Data Action. (postMessage) ✅';
+        } catch (err) {
+          statusEl.innerHTML = 'Error enviando message al contenedor: ' + String(err);
+        }
+
+        // 2) (OPCIONAL) -- INVOCACIÓN DIRECTA VIA REST
+        // Si quieres que el widget intente invocar el Data Action directamente, puedes descomentar el bloque
+        // y configurar DATA_ACTION_URL y AUTH_TOKEN apropiadamente. Ten en cuenta CORS y seguridad:
+        //
+        // fetch(DATA_ACTION_URL, {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'Authorization': 'Bearer YOUR_OAUTH_TOKEN_HERE' // reemplazar
+        //   },
+        //   body: JSON.stringify(payload.parameters)
+        // })
+        // .then(r => r.json())
+        // .then(result => {
+        //   // manejar la respuesta del Data Action
+        //   statusEl.innerHTML += '<br>Respuesta directa del Data Action: ' + JSON.stringify(result);
+        // })
+        // .catch(err => {
+        //   statusEl.innerHTML += '<br>Error en invocación directa: ' + String(err);
+        // });
+
+      });
+
+      // Seguridad/Debug: escucha respuestas del host si el host responde con postMessage
+      window.addEventListener('message', function (ev) {
+        // En un entorno real deberías validar ev.origin
+        try {
+          const data = ev.data || {};
+          if (data && data.replyFor && data.replyFor === 'invokeDataAction') {
+            statusEl.innerHTML = 'Respuesta del contenedor: ' + JSON.stringify(data, null, 2);
+          }
+        } catch (e) {
+          // ignore
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
