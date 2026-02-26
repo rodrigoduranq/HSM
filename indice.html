@@ -1,80 +1,177 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <title>Usuario logueado - Genesys</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <title>Usuario logueado - Genesys (sae1)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f7fa;
-      padding: 20px;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-      max-width: 400px;
-    }
-    h2 {
-      margin-top: 0;
-    }
-    .user {
-      font-size: 18px;
-      font-weight: bold;
-      color: #0b6cff;
-    }
+    body { font-family: Arial, sans-serif; background:#f5f7fa; padding:18px; }
+    .card { background:#fff; padding:18px; border-radius:8px; max-width:520px; box-shadow:0 6px 18px rgba(0,0,0,0.06); margin:0 auto; }
+    h2 { margin-top:0; }
+    .user { font-size:16px; font-weight:700; color:#0b6cff; }
+    .meta { font-size:13px; color:#444; margin-top:6px; }
+    .error { color:#b91c1c; white-space:pre-wrap; margin-top:8px; }
+    .info { color:#065f46; white-space:pre-wrap; margin-top:8px; }
+    button { margin-top:12px; padding:8px 12px; border-radius:8px; border:0; background:#0b6cff; color:white; cursor:pointer; font-weight:600; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Usuario Logueado</h2>
-    <div id="status">Cargando usuario...</div>
+  <div class="card" role="main" aria-labelledby="title">
+    <h2 id="title">Usuario Logueado (forzado: sae1)</h2>
+
+    <div id="status" class="meta">Inicializando…</div>
+
+    <div id="userInfo" style="margin-top:12px;"></div>
+
+    <div style="margin-top:12px;">
+      <button id="btnRefresh">Refrescar usuario</button>
+    </div>
+
+    <div id="diagnostics" class="error" aria-live="polite"></div>
   </div>
 
   <!-- SDK oficial Genesys Cloud -->
   <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
 
   <script>
-    const platformClient = require('platformClient');
-    const client = platformClient.ApiClient.instance;
-    const usersApi = new platformClient.UsersApi();
+    (function () {
+      // --- CONFIG: pon aquí tu CLIENT_ID del OAuth Client (Implicit o PKCE)
+      const CLIENT_ID = '2502f686-e6af-486a-b9a0-8b48eb07bc41';
 
-    // ⚠️ PON AQUÍ TU OAUTH CLIENT ID
-    const CLIENT_ID = "2502f686-e6af-486a-b9a0-8b48eb07bc41";
+      // Forzamos los hosts/entornos basados en tu petición:
+      // App host donde se embebe: https://apps.sae1.pure.cloud/
+      // API base: https://api.sae1.pure.cloud
+      const APPS_HOST = 'https://apps.sae1.pure.cloud';
+      const API_BASE = 'https://api.sae1.pure.cloud';
 
-    async function init() {
-      try {
-        // Obtener región automáticamente desde la URL
-        const params = new URLSearchParams(window.location.search);
-        const gcTargetEnv = params.get("gcTargetEnv");
+      // Action ID no necesario aquí; solo mostramos usuario.
+      const platformClient = require('platformClient');
+      const client = platformClient.ApiClient.instance;
+      const usersApi = new platformClient.UsersApi();
 
-        if (gcTargetEnv) {
-          client.setEnvironment(gcTargetEnv);
+      // Utilidades para mostrar estado/diagnóstico
+      const statusEl = document.getElementById('status');
+      const userInfoEl = document.getElementById('userInfo');
+      const diagEl = document.getElementById('diagnostics');
+      const btnRefresh = document.getElementById('btnRefresh');
+
+      function setStatus(msg) { statusEl.textContent = msg; }
+      function setDiag(msg) { diagEl.textContent = msg; }
+      function setUserInfo(html) { userInfoEl.innerHTML = html; }
+
+      // Forzamos environment + basePath para la región sae1
+      function forceRegion() {
+        try {
+          // Algunos SDKs usan setEnvironment; ponemos ambas defensas:
+          if (typeof client.setEnvironment === 'function') {
+            // NOTE: setEnvironment normalmente recibe algo como 'mypurecloud.com'.
+            // Aquí llamamos con el host de la API sin esquema por si lo acepta.
+            // También dejamos el basePath explícito abajo.
+            try { client.setEnvironment('sae1.pure.cloud'); } catch (e) { /* ignore */ }
+          }
+          // Forzamos basePath por si setEnvironment no acepta la forma anterior
+          try {
+            // Algunos builds exponen basePath o host en la instancia:
+            client.basePath = API_BASE;
+            if (typeof client.setBasePath === 'function') client.setBasePath(API_BASE);
+          } catch (e) {
+            // ignore
+          }
+        } catch (e) {
+          // no bloquear
+          console.warn('forceRegion() warning', e);
+        }
+      }
+
+      // Inicia login + fetch user
+      async function initAndFetchUser() {
+        setDiag('');
+        setUserInfo('');
+        setStatus('Inicializando SDK y forzando región a sae1...');
+        forceRegion();
+
+        if (!CLIENT_ID || CLIENT_ID === 'TU_CLIENT_ID_AQUI') {
+          setDiag('Por favor configura CLIENT_ID en el archivo HTML (const CLIENT_ID = "...") antes de usar.');
+          setStatus('Falta CLIENT_ID');
+          return;
         }
 
-        // Login (si ya está logueado no pedirá credenciales)
-        await client.loginImplicitGrant(
-          CLIENT_ID,
-          window.location.origin + window.location.pathname
-        );
+        // Construir redirect URI EXACTO (Genesys requiere URIs coincidentes)
+        // Usamos la misma página actual como redirect.
+        const redirectUri = window.location.origin + window.location.pathname + window.location.search;
 
-        // Obtener usuario actual
-        const user = await usersApi.getUsersMe();
+        // Intentar login implícito — si ya hay sesión no pedirá credenciales.
+        try {
+          setStatus('Solicitando login (loginImplicitGrant). Si ya estabas logueado, no verás prompt...');
+          // loginImplicitGrant abrirá popup y luego redirige al redirectUri.
+          // Si el token ya existe en sessionStorage del SDK, loginImplicitGrant podría no pedir nada.
+          await client.loginImplicitGrant(CLIENT_ID, redirectUri);
+        } catch (loginErr) {
+          // loginImplicitGrant lanza error si el usuario cancela o si algo no está bien
+          setDiag('Error durante loginImplicitGrant: ' + String(loginErr));
+          setStatus('Login fallido');
+          console.error('loginImplicitGrant error:', loginErr);
+          return;
+        }
 
-        document.getElementById("status").innerHTML =
-          `<div class="user">${user.name}</div>
-           <div>${user.email}</div>`;
+        // Comprobar que tenemos token
+        try {
+          const authData = client.authData || (client && client.getAccessToken && client.getAccessToken());
+          // Nota: en algunos builds authData está en client.authData; en otros, SDK expone getAccessToken()
+          const token = (client.authData && client.authData.accessToken) || (typeof client.getAccessToken === 'function' ? client.getAccessToken() : null);
+          if (!token) {
+            setDiag('No se detectó access token luego del login. Asegúrate que el OAuth Client permite el origen y redirect URI.');
+            setStatus('Token no disponible');
+            return;
+          }
+        } catch (e) {
+          // no bloquear
+        }
 
-      } catch (error) {
-        document.getElementById("status").innerText =
-          "Error obteniendo usuario: " + error;
-        console.error(error);
+        // Llamar a GET /api/v2/users/me
+        try {
+          setStatus('Obteniendo usuario actual (/api/v2/users/me)...');
+          // UsersApi usará el cliente configurado (basePath) para llamar a la API.
+          const me = await usersApi.getUsersMe();
+          // Mostrar id, name, email (si existe)
+          const html = `
+            <div><span class="user">${escapeHtml(me.name || '(sin nombre)')}</span></div>
+            <div class="meta">ID: <code>${escapeHtml(me.id || '(sin id)')}</code></div>
+            <div class="meta">Email: ${escapeHtml(me.email || '(sin email)')}</div>
+            <div class="meta">Username: ${escapeHtml(me.username || '(sin username)')}</div>
+          `;
+          setUserInfo(html);
+          setStatus('Usuario cargado correctamente ✅');
+        } catch (err) {
+          setDiag('Error al llamar GET /api/v2/users/me: ' + (err && err.message ? err.message : String(err)));
+          setStatus('Error obteniendo usuario');
+          console.error('GET /users/me error:', err);
+        }
       }
-    }
 
-    init();
+      // pequeño helper para escapar HTML en output
+      function escapeHtml(s) {
+        if (!s && s !== 0) return '';
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      // Hook del botón
+      btnRefresh.addEventListener('click', function () {
+        initAndFetchUser();
+      });
+
+      // Auto-run una vez
+      initAndFetchUser();
+
+      // DEBUG: imprimir configuración del cliente en la consola (útil para diagnosticar)
+      console.log('Genesys SDK ApiClient instance:', client);
+      console.log('Forzando APi base a:', API_BASE, 'Apps host:', APPS_HOST);
+    })();
   </script>
 </body>
 </html>
