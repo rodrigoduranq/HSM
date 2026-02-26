@@ -3,139 +3,94 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Genesys Widget - Ejecutar Data Action (sae1)</title>
+  <title>Genesys Client App - SAE1</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 18px; background:#f7f8fa; color:#222; }
-    .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(20,20,30,0.06); max-width:640px; margin:0 auto; }
-    h2 { margin: 0 0 10px 0; }
-    .muted { color:#6b7280; font-size:13px; margin: 6px 0 12px; }
+    body { font-family: Arial, sans-serif; padding: 18px; background:#f7f8fa; }
+    .card { background:#fff; border-radius:10px; padding:16px; box-shadow:0 6px 18px rgba(20,20,30,0.06); max-width:700px; margin:0 auto; }
+    h2 { margin:0 0 10px 0; }
     label { display:block; margin-top:12px; font-size:13px; color:#444; }
-    input[type="text"] { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #d6dbe3; box-sizing:border-box; margin-top:6px; font-size:14px; }
-    .row { display:flex; gap:10px; }
-    .row > div { flex: 1; }
+    input[type="text"] { width:100%; padding:8px; border-radius:6px; border:1px solid #d6dbe3; margin-top:6px; }
     button { margin-top:16px; padding:10px 14px; border-radius:8px; border:0; background:#0b6cff; color:white; font-weight:600; cursor:pointer; }
     button:disabled { opacity:.6; cursor:not-allowed; }
-    pre { background:#f3f4f6; padding:10px; border-radius:6px; overflow:auto; font-size:12px; }
-    .status { margin-top:12px; font-size:13px; white-space:pre-wrap; }
+    .status { margin-top:12px; white-space:pre-wrap; font-size:13px; }
     .ok { color:#065f46; }
     .err { color:#b91c1c; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; font-size:12px; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .muted { color:#6b7280; font-size:13px; margin-bottom:10px; }
+    code { font-family: monospace; }
   </style>
 </head>
 <body>
-  <div class="card" role="main">
-    <h2>Widget Genesys (sae1) <span class="pill">Client App</span></h2>
+  <div class="card">
+    <h2>Client App Genesys - SAE1</h2>
     <div class="muted">
-      Región forzada: <code>apps.sae1.pure.cloud</code> / <code>api.sae1.pure.cloud</code><br/>
-      Ejecuta Data Action: <code>custom_-_4ae2533e-dbec-4148-8ccb-c204ee03a94f</code>
+      Región forzada: <code>apps.sae1.pure.cloud</code><br/>
+      Data Action: <code>custom_-_4ae2533e-dbec-4148-8ccb-c204ee03a94f</code>
     </div>
 
-    <div id="userBox" class="muted">Usuario: cargando…</div>
+    <div id="userBox">Usuario: cargando...</div>
 
-    <form id="form" autocomplete="off">
-      <div class="row">
-        <div>
-          <label for="id">id</label>
-          <input id="id" name="id" type="text" value="1817712608858479" required />
-        </div>
-        <div>
-          <label for="name">name</label>
-          <input id="name" name="name" type="text" value="test_genesys" required />
-        </div>
-      </div>
+    <form id="form">
+      <label>id</label>
+      <input id="id" type="text" value="1817712608858479"/>
 
-      <div class="row">
-        <div>
-          <label for="from">from</label>
-          <input id="from" name="from" type="text" value="5491168690967" required />
-        </div>
-        <div>
-          <label for="to">to</label>
-          <input id="to" name="to" type="text" value="5493517022819" required />
-        </div>
-      </div>
+      <label>name</label>
+      <input id="name" type="text" value="test_genesys"/>
 
-      <div class="row">
-        <div>
-          <label for="nombre">nombre</label>
-          <input id="nombre" name="nombre" type="text" value="lean" required />
-        </div>
-        <div>
-          <label for="dato">dato</label>
-          <input id="dato" name="dato" type="text" value="holas" required />
-        </div>
-      </div>
+      <label>from</label>
+      <input id="from" type="text" value="5491168690967"/>
+
+      <label>to</label>
+      <input id="to" type="text" value="5493517022819"/>
+
+      <label>nombre</label>
+      <input id="nombre" type="text" value="lean"/>
+
+      <label>dato</label>
+      <input id="dato" type="text" value="holas"/>
 
       <button id="btnEnviar" type="button">Enviar</button>
     </form>
 
     <div id="status" class="status"></div>
-
-    <details style="margin-top:12px;">
-      <summary style="cursor:pointer;">Ver payload</summary>
-      <pre id="payloadPreview">{}</pre>
-    </details>
   </div>
 
-  <!-- SDK oficial Genesys Cloud -->
   <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
 
   <script>
     (function () {
-      // ====== CONFIGURACIÓN (AQUÍ VAN TUS "CREDENCIALES" DE OAUTH) ======
-      // Para frontend embebido: SOLO se usa el CLIENT ID.
-      // NO pongas Client Secret en HTML.
+
+      // ==============================
+      // 🔐 SOLO PON TU CLIENT ID AQUÍ
+      // ==============================
       const OAUTH_CLIENT_ID = "2502f686-e6af-486a-b9a0-8b48eb07bc41";
 
-      // Región SAE1 (forzada)
-      const APPS_HOST = "https://apps.sae1.pure.cloud";
-      const API_BASE  = "https://api.sae1.pure.cloud";
-
-      // Data Action a ejecutar
+      const API_BASE = "https://api.sae1.pure.cloud";
       const ACTION_ID = "custom_-_4ae2533e-dbec-4148-8ccb-c204ee03a94f";
 
-      // ====== SDK setup ======
       const platformClient = require('platformClient');
       const client = platformClient.ApiClient.instance;
       const usersApi = new platformClient.UsersApi();
       const integrationsApi = new platformClient.IntegrationsApi();
 
-      // ====== UI refs ======
       const userBox = document.getElementById('userBox');
       const statusEl = document.getElementById('status');
       const btnEnviar = document.getElementById('btnEnviar');
-      const payloadPreview = document.getElementById('payloadPreview');
-      const form = document.getElementById('form');
 
-      function setStatusOk(msg) {
+      function setStatusOk(msg){
         statusEl.className = "status ok";
         statusEl.textContent = msg;
       }
-      function setStatusErr(msg) {
+
+      function setStatusErr(msg){
         statusEl.className = "status err";
         statusEl.textContent = msg;
       }
 
-      function escapeHtml(s) {
-        if (s === null || s === undefined) return '';
-        return String(s)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
+      function forceRegion(){
+        client.basePath = API_BASE;
       }
 
-      function forceRegion() {
-        // Forzar basePath a sae1
-        try { client.basePath = API_BASE; } catch (e) {}
-        try { if (typeof client.setBasePath === 'function') client.setBasePath(API_BASE); } catch (e) {}
-        // setEnvironment no siempre acepta URLs; intentamos igualmente
-        try { if (typeof client.setEnvironment === 'function') client.setEnvironment('sae1.pure.cloud'); } catch (e) {}
-      }
-
-      function buildParameters() {
+      function buildParameters(){
         return {
           id: document.getElementById('id').value,
           name: document.getElementById('name').value,
@@ -146,86 +101,62 @@
         };
       }
 
-      function buildExecuteBody() {
-        return { parameters: buildParameters() };
-      }
-
-      function updatePreview() {
-        payloadPreview.textContent = JSON.stringify({
-          apiBase: API_BASE,
-          actionId: ACTION_ID,
-          body: buildExecuteBody()
-        }, null, 2);
-      }
-
-      async function ensureAuth() {
-        if (!OAUTH_CLIENT_ID || OAUTH_CLIENT_ID === "PEGA_AQUI_TU_CLIENT_ID") {
-          throw new Error("Configura OAUTH_CLIENT_ID en el HTML (no es el secret, es el Client ID).");
+      async function ensureAuth(){
+        if (!OAUTH_CLIENT_ID || OAUTH_CLIENT_ID === "PEGA_AQUI_TU_CLIENT_ID"){
+          throw new Error("Debes configurar el OAUTH_CLIENT_ID");
         }
 
         forceRegion();
 
-        // Redirect URI debe estar registrado en el OAuth Client
-        // Usamos la URL actual sin inventar rutas.
         const redirectUri = window.location.origin + window.location.pathname;
 
-        // Si ya hay token, no reloguear
-        const token = (client.authData && client.authData.accessToken) ||
-                      (typeof client.getAccessToken === 'function' ? client.getAccessToken() : null);
+        const token = client.authData && client.authData.accessToken;
         if (token) return;
 
-        // Login: si ya está logueado en Genesys, normalmente no pedirá credenciales
         await client.loginImplicitGrant(OAUTH_CLIENT_ID, redirectUri);
       }
 
-      async function loadMe() {
+      async function loadUser(){
         await ensureAuth();
         const me = await usersApi.getUsersMe();
-        userBox.innerHTML =
-          `Usuario: <strong>${escapeHtml(me.name)}</strong> · ID: <code>${escapeHtml(me.id)}</code>`;
-        return me;
+        userBox.innerHTML = "Usuario: <strong>" + me.name + "</strong> | ID: " + me.id;
       }
 
-      async function executeDataAction() {
+      async function executeDataAction(){
         await ensureAuth();
 
-        const body = buildExecuteBody();
-        // Llama: POST /api/v2/integrations/actions/{actionId}/execute
-        const res = await integrationsApi.postIntegrationsActionExecute(ACTION_ID, body);
-        return res;
+        // 👇 IMPORTANTE: enviar objeto plano (no { parameters: {...} })
+        const body = buildParameters();
+
+        return await integrationsApi.postIntegrationsActionExecute(ACTION_ID, body);
       }
 
-      btnEnviar.addEventListener('click', async () => {
+      btnEnviar.addEventListener("click", async function(){
         btnEnviar.disabled = true;
-        setStatusOk("Ejecutando Data Action…");
-        try {
+        setStatusOk("Ejecutando Data Action...");
+
+        try{
           const result = await executeDataAction();
-          setStatusOk("✅ Data Action ejecutado.\n" + JSON.stringify(result, null, 2));
-        } catch (e) {
-          setStatusErr("❌ Error ejecutando Data Action:\n" + (e && e.message ? e.message : String(e)));
-          console.error(e);
-        } finally {
+          setStatusOk("✅ Data Action ejecutado correctamente:\n" + JSON.stringify(result, null, 2));
+        }catch(err){
+          const details = err.body ? JSON.stringify(err.body, null, 2) : err.message;
+          setStatusErr("❌ Error:\n" + details);
+          console.error(err);
+        }finally{
           btnEnviar.disabled = false;
         }
       });
 
-      form.addEventListener('input', updatePreview);
-
-      // init
-      (async () => {
-        updatePreview();
-        try {
-          await loadMe();
-          setStatusOk("Listo ✅ (usuario cargado).");
-        } catch (e) {
-          setStatusErr("❌ No se pudo autenticar/cargar usuario.\n" + (e && e.message ? e.message : String(e)));
-          console.error(e);
+      (async function init(){
+        try{
+          await loadUser();
+          setStatusOk("Listo.");
+        }catch(e){
+          setStatusErr("Error autenticando:\n" + e.message);
         }
       })();
 
-      console.log("Apps host:", APPS_HOST, "API base:", API_BASE);
     })();
   </script>
 </body>
 </html>
-
