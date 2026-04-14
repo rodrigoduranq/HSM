@@ -290,10 +290,11 @@
 
         const me = await usersApi.getUsersMe();
         genesysUserEl.textContent = me.name || me.username || 'Usuario no disponible';
-      } catch (error) {
-        console.error('Error inicializando Genesys Cloud:', error);
-        genesysUserEl.textContent = 'No fue posible obtener el usuario firmado.';
-      }
+} catch (error) {
+  console.error('Error inicializando Genesys Cloud:', error);
+  genesysUserEl.textContent =
+    'Error Genesys: ' + (error.message || error.error || JSON.stringify(error));
+}
     }
 
     window.addEventListener('load', initGenesysCloud);
