@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulario de Reclamos</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --primary: #0f62fe;
+      --primary-hover: #0b4fd1;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    select,
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      background: #fff;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.12);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .footer {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .genesys-user {
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      font-size: 14px;
+    }
+
+    .genesys-user strong {
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    button {
+      border: none;
+      background: var(--primary);
+      color: white;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    .note {
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <!-- SDKs oficiales de Genesys Cloud -->
+  <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
+  <script src="https://sdk-cdn.mypurecloud.com/client-apps/2.0.0/purecloud-client-app-sdk.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Formulario de Reclamos</h1>
+      <p class="subtitle">Selecciona el tipo de gestión y completa los datos requeridos.</p>
+
+      <div class="field">
+        <label for="tipoGestion">Tipo</label>
+        <select id="tipoGestion">
+          <option value="reclamo_finalizado" selected>Reclamo Finalizado</option>
+          <option value="reclamo_pendiente">Reclamo Pendiente</option>
+          <option value="reclamo_pendiente_organismos">Reclamo Pendiente Organismos Oficiales</option>
+          <option value="referidos">Referidos</option>
+        </select>
+      </div>
+
+      <form id="reclamoForm">
+        <div class="grid" id="dynamicFields"></div>
+
+        <div class="footer">
+          <div class="genesys-user">
+            <strong>Usuario firmado en Genesys Cloud:</strong>
+            <span id="genesysUser">Cargando usuario...</span>
+          </div>
+
+          <div class="actions">
+            <button type="button" id="btnAceptar">Aceptar</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="note">
+        Para que el nombre del usuario se muestre correctamente, debes configurar tu Client ID y Redirect URI de Genesys Cloud en la sección CONFIGURACION_GENESYS dentro de este archivo.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fieldTemplates = {
+      reclamo_finalizado: [
+        { id: 'telefono', label: 'Numero de Telefono', type: 'tel', full: true },
+        { id: 'nombreCliente', label: 'Nombre Cliente', type: 'text', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', type: 'text' },
+        { id: 'dni', label: 'DNI', type: 'text' }
+      ],
+      reclamo_pendiente: [
+        { id: 'telefono', label: 'Numero de Telefono', type: 'tel', full: true },
+        { id: 'nombreCliente', label: 'Nombre Cliente', type: 'text', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', type: 'text' },
+        { id: 'dni', label: 'DNI', type: 'text' }
+      ],
+      reclamo_pendiente_organismos: [
+        { id: 'telefono', label: 'Numero de Telefono', type: 'tel', full: true },
+        { id: 'nombreCliente', label: 'Nombre Cliente', type: 'text', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', type: 'text' },
+        { id: 'dni', label: 'DNI', type: 'text' }
+      ],
+      referidos: [
+        { id: 'telefono', label: 'Numero de Telefono', type: 'tel', full: true },
+        { id: 'nombreCliente', label: 'Nombre del Cliente', type: 'text', full: true }
+      ]
+    };
+
+    const tipoGestion = document.getElementById('tipoGestion');
+    const dynamicFields = document.getElementById('dynamicFields');
+    const genesysUserEl = document.getElementById('genesysUser');
+    const btnAceptar = document.getElementById('btnAceptar');
+
+    function renderFields(type) {
+      const fields = fieldTemplates[type] || [];
+
+      dynamicFields.innerHTML = fields.map(field => `
+        <div class="field ${field.full ? 'full' : ''}">
+          <label for="${field.id}">${field.label}</label>
+          <input id="${field.id}" name="${field.id}" type="${field.type}" autocomplete="off" />
+        </div>
+      `).join('');
+    }
+
+    tipoGestion.addEventListener('change', (e) => {
+      renderFields(e.target.value);
+    });
+
+    btnAceptar.addEventListener('click', () => {
+      // Pendiente de definir.
+      // Cuando me indiques qué debe hacer este botón, aquí lo conectamos.
+      console.log('Botón Aceptar presionado');
+    });
+
+    renderFields(tipoGestion.value);
+
+    /*
+      =========================
+      CONFIGURACION_GENESYS
+      =========================
+      Completa estos valores con los de tu org/app.
+      Ejemplo de environment: mypurecloud.com, mypurecloud.ie, usw2.pure.cloud, etc.
+    */
+    const GENESYS_CONFIG = {
+      clientId: '2502f686-e6af-486a-b9a0-8b48eb07bc41',
+      redirectUri: window.location.origin + window.location.pathname,
+      environment: getEnvironmentFromQuery() || 'sae1.pure.cloud',
+      appName: 'formulario_reclamos_html'
+    };
+
+    function getEnvironmentFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('environment') || params.get('gcTargetEnv');
+    }
+
+    async function initGenesysCloud() {
+      try {
+        if (typeof window.require !== 'function') {
+          genesysUserEl.textContent = 'No se detectó el runtime del SDK de Genesys Cloud.';
+          return;
+        }
+
+        if (!GENESYS_CONFIG.clientId || GENESYS_CONFIG.clientId === 'REEMPLAZAR_CON_TU_CLIENT_ID') {
+          genesysUserEl.textContent = 'Configura el Client ID para obtener el usuario firmado.';
+          return;
+        }
+
+        const platformClient = window.require('platformClient');
+        const client = platformClient.ApiClient.instance;
+        const usersApi = new platformClient.UsersApi();
+
+        if (window.purecloud && window.purecloud.apps && window.purecloud.apps.ClientApp) {
+          new window.purecloud.apps.ClientApp({
+            pcEnvironment: GENESYS_CONFIG.environment
+          });
+        }
+
+        client.setPersistSettings(true, GENESYS_CONFIG.appName);
+        client.setEnvironment(GENESYS_CONFIG.environment);
+
+        await client.loginImplicitGrant(
+          GENESYS_CONFIG.clientId,
+          GENESYS_CONFIG.redirectUri
+        );
+
+        const me = await usersApi.getUsersMe();
+        genesysUserEl.textContent = me.name || me.username || 'Usuario no disponible';
+      } catch (error) {
+        console.error('Error inicializando Genesys Cloud:', error);
+        genesysUserEl.textContent = 'No fue posible obtener el usuario firmado.';
+      }
+    }
+
+    window.addEventListener('load', initGenesysCloud);
+  </script>
+</body>
+</html>
