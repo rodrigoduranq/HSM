@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulario de Reclamos</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    .container { max-width: 600px; margin: 0 auto; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+    }
+
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    .subtitle { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+
+    .field { margin-bottom: 10px; }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      height: 32px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .full { grid-column: 1 / -1; }
+
+    .footer {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .genesys-user {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      font-size: 12px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      height: 34px;
+    }
+
+    button:hover { background: var(--primary-hover); }
+
+  </style>
+
+  <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Reclamos</h1>
+      <p class="subtitle">Gestión rápida</p>
+
+      <div class="field">
+        <label>Tipo</label>
+        <select id="tipoGestion">
+          <option value="reclamo_finalizado" selected>Reclamo Finalizado</option>
+          <option value="reclamo_pendiente">Reclamo Pendiente</option>
+          <option value="reclamo_pendiente_organismos">Reclamo Pendiente Org.</option>
+          <option value="referidos">Referidos</option>
+        </select>
+      </div>
+
+      <div class="grid" id="dynamicFields"></div>
+
+      <div class="footer">
+        <div class="genesys-user">
+          <strong>Usuario:</strong>
+          <span id="genesysUser">Cargando...</span>
+        </div>
+
+        <div class="actions">
+          <button id="btnAceptar">Aceptar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const templates = {
+      reclamo_finalizado: [
+        { id: 'telefono', label: 'Teléfono', full: true },
+        { id: 'nombre', label: 'Cliente', full: true },
+        { id: 'idReclamo', label: 'ID Reclamo' },
+        { id: 'dni', label: 'DNI' }
+      ],
+      reclamo_pendiente: [
+        { id: 'telefono', label: 'Teléfono', full: true },
+        { id: 'nombre', label: 'Cliente', full: true },
+        { id: 'idReclamo', label: 'ID Reclamo' },
+        { id: 'dni', label: 'DNI' }
+      ],
+      reclamo_pendiente_organismos: [
+        { id: 'telefono', label: 'Teléfono', full: true },
+        { id: 'nombre', label: 'Cliente', full: true },
+        { id: 'idReclamo', label: 'ID Reclamo' },
+        { id: 'dni', label: 'DNI' }
+      ],
+      referidos: [
+        { id: 'telefono', label: 'Teléfono', full: true },
+        { id: 'nombre', label: 'Cliente', full: true }
+      ]
+    };
+
+    const tipo = document.getElementById('tipoGestion');
+    const container = document.getElementById('dynamicFields');
+    const userEl = document.getElementById('genesysUser');
+
+    function render(type) {
+      container.innerHTML = templates[type].map(f => `
+        <div class="field ${f.full ? 'full' : ''}">
+          <label>${f.label}</label>
+          <input id="${f.id}" />
+        </div>
+      `).join('');
+    }
+
+    tipo.addEventListener('change', e => render(e.target.value));
+    render(tipo.value);
+
+    const CONFIG = {
+      clientId: '2502f686-e6af-486a-b9a0-8b48eb07bc41',
+      redirectUri: window.location.origin + window.location.pathname,
+      environment: 'sa_east_1'
+    };
+
+    async function initGenesys() {
+      try {
+        const platformClient = window.require('platformClient');
+        const client = platformClient.ApiClient.instance;
+        const usersApi = new platformClient.UsersApi();
+
+        const env = platformClient.PureCloudRegionHosts[CONFIG.environment];
+        client.setEnvironment(env);
+
+        await client.loginImplicitGrant(CONFIG.clientId, CONFIG.redirectUri);
+
+        const me = await usersApi.getUsersMe();
+        userEl.textContent = me.name;
+
+      } catch (e) {
+        console.error(e);
+        userEl.textContent = 'Error: ' + (e.message || JSON.stringify(e));
+      }
+    }
+
+    window.addEventListener('load', initGenesys);
+  </script>
+</body>
+</html>
