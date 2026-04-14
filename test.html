@@ -6,15 +6,14 @@
   <title>Formulario de Reclamos</title>
   <style>
     :root {
-      --bg: #f4f7fb;
+      --bg: #eef2f7;
       --card: #ffffff;
-      --text: #1f2937;
+      --text: #111827;
       --muted: #6b7280;
       --border: #d1d5db;
-      --primary: #0f62fe;
-      --primary-hover: #0b4fd1;
-      --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-      --radius: 16px;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --radius: 10px;
     }
 
     * { box-sizing: border-box; }
@@ -24,89 +23,97 @@
       font-family: Arial, Helvetica, sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding: 24px;
+      padding: 12px;
+      font-size: 13px;
     }
 
-    .container { max-width: 760px; margin: 0 auto; }
+    .container { max-width: 600px; margin: 0 auto; }
 
     .card {
       background: var(--card);
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 28px;
+      padding: 16px;
+      border: 1px solid #e5e7eb;
     }
 
-    h1 { margin: 0 0 8px; font-size: 28px; }
-    .subtitle { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+    h1 { margin: 0 0 4px; font-size: 20px; }
+    .subtitle { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
 
-    .field { margin-bottom: 18px; }
+    .field { margin-bottom: 10px; }
 
-    label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+      font-size: 12px;
+    }
 
     select, input {
       width: 100%;
-      padding: 12px 14px;
+      padding: 8px 10px;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      font-size: 15px;
-      outline: none;
-      background: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+      height: 32px;
     }
 
-    select:focus, input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.12);
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
 
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     .full { grid-column: 1 / -1; }
 
-    .footer { margin-top: 28px; display: flex; flex-direction: column; gap: 16px; }
-
-    .genesys-user {
-      padding: 14px 16px;
-      border-radius: 12px;
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      font-size: 14px;
+    .footer {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .actions { display: flex; justify-content: flex-end; }
+    .genesys-user {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      font-size: 12px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+    }
 
     button {
-      border: none;
       background: var(--primary);
       color: white;
-      padding: 12px 22px;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
+      height: 34px;
     }
 
     button:hover { background: var(--primary-hover); }
 
-    @media (max-width: 640px) {
-      .grid { grid-template-columns: 1fr; }
-    }
   </style>
 
-  <!-- SDKs Genesys -->
   <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
-  <script src="https://sdk-cdn.mypurecloud.com/client-apps/2.0.0/purecloud-client-app-sdk.js"></script>
 </head>
 <body>
   <div class="container">
     <div class="card">
-      <h1>Formulario de Reclamos</h1>
-      <p class="subtitle">Selecciona el tipo de gestión y completa los datos.</p>
+      <h1>Reclamos</h1>
+      <p class="subtitle">Gestión rápida</p>
 
       <div class="field">
         <label>Tipo</label>
         <select id="tipoGestion">
           <option value="reclamo_finalizado" selected>Reclamo Finalizado</option>
           <option value="reclamo_pendiente">Reclamo Pendiente</option>
-          <option value="reclamo_pendiente_organismos">Reclamo Pendiente Organismos Oficiales</option>
+          <option value="reclamo_pendiente_organismos">Reclamo Pendiente Org.</option>
           <option value="referidos">Referidos</option>
         </select>
       </div>
@@ -115,7 +122,7 @@
 
       <div class="footer">
         <div class="genesys-user">
-          <strong>Usuario firmado:</strong>
+          <strong>Usuario:</strong>
           <span id="genesysUser">Cargando...</span>
         </div>
 
@@ -129,26 +136,26 @@
   <script>
     const templates = {
       reclamo_finalizado: [
-        { id: 'telefono', label: 'Numero de Telefono', full: true },
-        { id: 'nombre', label: 'Nombre Cliente', full: true },
-        { id: 'idReclamo', label: 'ID del Reclamo' },
+        { id: 'telefono', label: 'Teléfono', full: true },
+        { id: 'nombre', label: 'Cliente', full: true },
+        { id: 'idReclamo', label: 'ID Reclamo' },
         { id: 'dni', label: 'DNI' }
       ],
       reclamo_pendiente: [
-        { id: 'telefono', label: 'Numero de Telefono', full: true },
-        { id: 'nombre', label: 'Nombre Cliente', full: true },
-        { id: 'idReclamo', label: 'ID del Reclamo' },
+        { id: 'telefono', label: 'Teléfono', full: true },
+        { id: 'nombre', label: 'Cliente', full: true },
+        { id: 'idReclamo', label: 'ID Reclamo' },
         { id: 'dni', label: 'DNI' }
       ],
       reclamo_pendiente_organismos: [
-        { id: 'telefono', label: 'Numero de Telefono', full: true },
-        { id: 'nombre', label: 'Nombre Cliente', full: true },
-        { id: 'idReclamo', label: 'ID del Reclamo' },
+        { id: 'telefono', label: 'Teléfono', full: true },
+        { id: 'nombre', label: 'Cliente', full: true },
+        { id: 'idReclamo', label: 'ID Reclamo' },
         { id: 'dni', label: 'DNI' }
       ],
       referidos: [
-        { id: 'telefono', label: 'Numero de Telefono', full: true },
-        { id: 'nombre', label: 'Nombre del Cliente', full: true }
+        { id: 'telefono', label: 'Teléfono', full: true },
+        { id: 'nombre', label: 'Cliente', full: true }
       ]
     };
 
@@ -168,7 +175,6 @@
     tipo.addEventListener('change', e => render(e.target.value));
     render(tipo.value);
 
-    // CONFIG GENESYS
     const CONFIG = {
       clientId: '2502f686-e6af-486a-b9a0-8b48eb07bc41',
       redirectUri: window.location.origin + window.location.pathname,
@@ -182,8 +188,6 @@
         const usersApi = new platformClient.UsersApi();
 
         const env = platformClient.PureCloudRegionHosts[CONFIG.environment];
-        if (!env) throw new Error('Region inválida: ' + CONFIG.environment);
-
         client.setEnvironment(env);
 
         await client.loginImplicitGrant(CONFIG.clientId, CONFIG.redirectUri);
