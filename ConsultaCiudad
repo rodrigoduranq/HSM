@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Ciudad</title>
+</head>
+<body>
+<script>
+  const ciudades = {
+    acapulco: 400,
+    ixtapa: 403,
+    cancun: 700
+  };
+
+  function obtenerRespuesta() {
+    const params = new URLSearchParams(window.location.search);
+    const ciudad = (params.get('ciudad') || '').trim();
+    const clave = ciudad.toLowerCase();
+
+    if (!ciudad) {
+      return {
+        error: true,
+        mensaje: 'Debes enviar el parámetro ciudad'
+      };
+    }
+
+    if (!(clave in ciudades)) {
+      return {
+        error: true,
+        mensaje: 'Ciudad no encontrada',
+        ciudad: ciudad
+      };
+    }
+
+    return {
+      ciudad: ciudad,
+      valor: ciudades[clave]
+    };
+  }
+
+  // Mostrar SOLO JSON en pantalla
+  const respuesta = obtenerRespuesta();
+  document.body.style.whiteSpace = 'pre';
+  document.body.style.fontFamily = 'monospace';
+  document.body.textContent = JSON.stringify(respuesta, null, 2);
+</script>
+</body>
+</html>
