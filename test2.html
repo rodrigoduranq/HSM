@@ -157,7 +157,7 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v4</p>
+      <p class="subtitle">Gestión rápida v5</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
@@ -223,6 +223,7 @@
 
     let apiClient = null;
     let regionHost = null;
+    let genesysLoggedUserName = '';
 
     const CONFIG = {
       clientId: '2502f686-e6af-486a-b9a0-8b48eb07bc41',
@@ -273,12 +274,17 @@
     }
 
     function buildPayload() {
+      const nombreCapturado = getFieldValue('nombre');
+
       return {
         id: '1817712608858479',
         name: 'test_genesys',
         from: '5491168690967',
         to: getFieldValue('telefono'),
-        dato: '{"nombre":"Rodrigo Duran","dato":"Prueba"}'
+        dato: JSON.stringify({
+          C1: nombreCapturado,
+          C2: genesysLoggedUserName
+        })
       };
     }
 
@@ -306,7 +312,8 @@
         logDebug('Login OK');
 
         const me = await usersApi.getUsersMe();
-        genesysUserEl.textContent = me.name || me.username || 'Sin nombre';
+        genesysLoggedUserName = me.name || me.username || 'Sin nombre';
+        genesysUserEl.textContent = genesysLoggedUserName;
         logDebug('Usuario autenticado', me);
       } catch (error) {
         console.error(error);
