@@ -27,7 +27,10 @@
       font-size: 13px;
     }
 
-    .container { max-width: 600px; margin: 0 auto; }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
 
     .card {
       background: var(--card);
@@ -36,10 +39,20 @@
       border: 1px solid #e5e7eb;
     }
 
-    h1 { margin: 0 0 4px; font-size: 20px; }
-    .subtitle { margin: 0 0 12px; color: var(--muted); font-size: 12px; }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 20px;
+    }
 
-    .field { margin-bottom: 10px; }
+    .subtitle {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .field {
+      margin-bottom: 10px;
+    }
 
     label {
       display: block;
@@ -48,22 +61,27 @@
       font-size: 12px;
     }
 
-    select, input {
+    select,
+    input {
       width: 100%;
       padding: 8px 10px;
       border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 13px;
       height: 32px;
+      background: #fff;
     }
 
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
+      margin-top: 8px;
     }
 
-    .full { grid-column: 1 / -1; }
+    .full {
+      grid-column: 1 / -1;
+    }
 
     .footer {
       margin-top: 14px;
@@ -80,12 +98,33 @@
       font-size: 12px;
     }
 
+    .debug-panel {
+      padding: 10px;
+      border-radius: 8px;
+      background: #071533;
+      color: #e5e7eb;
+      border: 1px solid #0f274f;
+      font-size: 12px;
+      font-family: Consolas, Monaco, monospace;
+      white-space: pre-wrap;
+      max-height: 260px;
+      overflow: auto;
+      line-height: 1.45;
+    }
+
+    .debug-title {
+      color: #93c5fd;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
     .actions {
       display: flex;
       justify-content: flex-end;
     }
 
     button {
+      border: none;
       background: var(--primary);
       color: white;
       padding: 8px 16px;
@@ -96,8 +135,20 @@
       height: 34px;
     }
 
-    button:hover { background: var(--primary-hover); }
+    button:hover {
+      background: var(--primary-hover);
+    }
 
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 
   <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
@@ -106,14 +157,14 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v2</p>
+      <p class="subtitle">Gestión rápida v3</p>
 
       <div class="field">
-        <label>Tipo</label>
+        <label for="tipoGestion">Tipo</label>
         <select id="tipoGestion">
           <option value="reclamo_finalizado" selected>Reclamo Finalizado</option>
           <option value="reclamo_pendiente">Reclamo Pendiente</option>
-          <option value="reclamo_pendiente_organismos">Reclamo Pendiente Org.</option>
+          <option value="reclamo_pendiente_organismos">Reclamo Pendiente Organismos Oficiales</option>
           <option value="referidos">Referidos</option>
         </select>
       </div>
@@ -130,263 +181,228 @@
           <button id="btnAceptar" type="button">Aceptar</button>
         </div>
 
-        <div class="genesys-user" style="background:#0f172a;color:#e5e7eb;font-family:monospace;white-space:pre-wrap;max-height:260px;overflow:auto;">
-          <strong style="color:#93c5fd;">Debug:</strong>
-          <div id="debugLog" style="margin-top:6px; font-size:12px; line-height:1.45;">Esperando acciones...</div>
+        <div class="debug-panel">
+          <div class="debug-title">Debug:</div>
+          <div id="debugLog">Esperando acciones...</div>
         </div>
       </div>
     </div>
-  </div>
   </div>
 
   <script>
     const templates = {
       reclamo_finalizado: [
-        { id: 'telefono', label: 'Teléfono', full: true },
-        { id: 'nombre', label: 'Cliente', full: true },
-        { id: 'idReclamo', label: 'ID Reclamo' },
-        { id: 'dni', label: 'DNI' }
+        { id: 'telefono', label: 'Numero de Telefono', full: true },
+        { id: 'nombre', label: 'Nombre Cliente', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
+        { id: 'dni', label: 'DNI', full: false }
       ],
       reclamo_pendiente: [
-        { id: 'telefono', label: 'Teléfono', full: true },
-        { id: 'nombre', label: 'Cliente', full: true },
-        { id: 'idReclamo', label: 'ID Reclamo' },
-        { id: 'dni', label: 'DNI' }
+        { id: 'telefono', label: 'Numero de Telefono', full: true },
+        { id: 'nombre', label: 'Nombre Cliente', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
+        { id: 'dni', label: 'DNI', full: false }
       ],
       reclamo_pendiente_organismos: [
-        { id: 'telefono', label: 'Teléfono', full: true },
-        { id: 'nombre', label: 'Cliente', full: true },
-        { id: 'idReclamo', label: 'ID Reclamo' },
-        { id: 'dni', label: 'DNI' }
+        { id: 'telefono', label: 'Numero de Telefono', full: true },
+        { id: 'nombre', label: 'Nombre Cliente', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
+        { id: 'dni', label: 'DNI', full: false }
       ],
       referidos: [
-        { id: 'telefono', label: 'Teléfono', full: true },
-        { id: 'nombre', label: 'Cliente', full: true }
+        { id: 'telefono', label: 'Numero de Telefono', full: true },
+        { id: 'nombre', label: 'Nombre del Cliente', full: true }
       ]
     };
 
-    const tipo = document.getElementById('tipoGestion');
-    const container = document.getElementById('dynamicFields');
-    const userEl = document.getElementById('genesysUser');
-    const btnAceptar = document.getElementById('btnAceptar');
-    const debugLog = document.getElementById('debugLog');
+    const tipoGestionEl = document.getElementById('tipoGestion');
+    const dynamicFieldsEl = document.getElementById('dynamicFields');
+    const genesysUserEl = document.getElementById('genesysUser');
+    const btnAceptarEl = document.getElementById('btnAceptar');
+    const debugLogEl = document.getElementById('debugLog');
 
-    let platformClientRef = null;
-    let apiClientRef = null;
-    let integrationsApiRef = null;
-    let usersApiRef = null;
-
-    const DATA_ACTION_CONFIG = {
-      actionId: 'custom_-_cf9ac7a1-adee-4789-881f-259af913669f',
-      payloadBase: {
-        id: '1817712608858479',
-        name: 'test_genesys',
-        from: '5491168690967',
-        dato: '{"nombre":"Rodrigo Duran","dato":"Prueba"}'
-      }
-    };
-
-    function logDebug(message, data) {
-      const ts = new Date().toLocaleTimeString();
-      let line = `[${ts}] ${message}`;
-
-      if (data !== undefined) {
-        try {
-          line += '
-' + (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
-        } catch (err) {
-          line += '
-' + String(data);
-        }
-      }
-
-      console.log(message, data ?? '');
-      debugLog.textContent = `${line}
-
-${debugLog.textContent}`;
-    }
-
-    function render(type) {
-      container.innerHTML = templates[type].map(f => `
-        <div class="field ${f.full ? 'full' : ''}">
-          <label>${f.label}</label>
-          <input id="${f.id}" />
-        </div>
-      `).join('');
-    }
-
-    function getFormValues() {
-      return {
-        tipo: tipo.value,
-        telefono: document.getElementById('telefono')?.value?.trim() || '',
-        nombre: document.getElementById('nombre')?.value?.trim() || '',
-        idReclamo: document.getElementById('idReclamo')?.value?.trim() || '',
-        dni: document.getElementById('dni')?.value?.trim() || ''
-      };
-    }
-
-    function buildDataActionPayload() {
-      const values = getFormValues();
-      return {
-        ...DATA_ACTION_CONFIG.payloadBase,
-        to: values.telefono
-      };
-    }
-
-    tipo.addEventListener('change', e => {
-      render(e.target.value);
-      logDebug('Tipo de gestión cambiado', { tipo: e.target.value });
-    });
-
-    render(tipo.value);
+    let apiClient = null;
+    let regionHost = null;
 
     const CONFIG = {
       clientId: '2502f686-e6af-486a-b9a0-8b48eb07bc41',
       redirectUri: window.location.origin + window.location.pathname,
-      environment: 'sa_east_1'
+      environmentKey: 'sa_east_1',
+      dataActionId: 'custom_-_cf9ac7a1-adee-4789-881f-259af913669f'
     };
+
+    function logDebug(message, data) {
+      const timestamp = new Date().toLocaleTimeString();
+      let text = `[${timestamp}] ${message}`;
+
+      if (typeof data !== 'undefined') {
+        try {
+          text += '\n' + JSON.stringify(data, null, 2);
+        } catch (err) {
+          text += '\n' + String(data);
+        }
+      }
+
+      console.log(message, data ?? '');
+      debugLogEl.textContent = `${text}\n\n${debugLogEl.textContent}`;
+    }
+
+    function renderFields(type) {
+      const fields = templates[type] || [];
+      dynamicFieldsEl.innerHTML = fields.map(field => `
+        <div class="field ${field.full ? 'full' : ''}">
+          <label for="${field.id}">${field.label}</label>
+          <input id="${field.id}" name="${field.id}" autocomplete="off" />
+        </div>
+      `).join('');
+    }
+
+    function getFieldValue(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+
+    function getFormValues() {
+      return {
+        tipo: tipoGestionEl.value,
+        telefono: getFieldValue('telefono'),
+        nombre: getFieldValue('nombre'),
+        idReclamo: getFieldValue('idReclamo'),
+        dni: getFieldValue('dni')
+      };
+    }
+
+    function buildPayload() {
+      return {
+        id: '1817712608858479',
+        name: 'test_genesys',
+        from: '5491168690967',
+        to: getFieldValue('telefono'),
+        dato: '{"nombre":"Rodrigo Duran","dato":"Prueba"}'
+      };
+    }
 
     async function initGenesys() {
       try {
-        logDebug('Inicializando SDK Genesys...', CONFIG);
+        logDebug('Inicializando Genesys Cloud');
 
-        const platformClient = window.require('platformClient');
-        platformClientRef = platformClient;
-        const client = platformClient.ApiClient.instance;
+        const platformClient = window.platformClient || (window.require ? window.require('platformClient') : null);
+        if (!platformClient) {
+          throw new Error('No se encontró platformClient en la página');
+        }
+
+        apiClient = platformClient.ApiClient.instance;
         const usersApi = new platformClient.UsersApi();
-        const integrationsApi = new platformClient.IntegrationsApi();
 
-        const env = platformClient.PureCloudRegionHosts[CONFIG.environment];
-        if (!env) throw new Error('Region inválida: ' + CONFIG.environment);
+        regionHost = platformClient.PureCloudRegionHosts[CONFIG.environmentKey];
+        if (!regionHost) {
+          throw new Error('No se encontró la región en PureCloudRegionHosts: ' + CONFIG.environmentKey);
+        }
 
-        client.setEnvironment(env);
-        logDebug('Environment configurado', env);
+        apiClient.setEnvironment(regionHost);
+        logDebug('Región configurada', { environmentKey: CONFIG.environmentKey, host: regionHost });
 
-        await client.loginImplicitGrant(CONFIG.clientId, CONFIG.redirectUri);
+        await apiClient.loginImplicitGrant(CONFIG.clientId, CONFIG.redirectUri);
         logDebug('Login OK');
 
         const me = await usersApi.getUsersMe();
-        userEl.textContent = me.name;
+        genesysUserEl.textContent = me.name || me.username || 'Sin nombre';
         logDebug('Usuario autenticado', me);
-
-        apiClientRef = client;
-        usersApiRef = usersApi;
-        integrationsApiRef = integrationsApi;
-
-        const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(integrationsApi))
-          .filter(name => /action|integrations/i.test(name))
-          .sort();
-        logDebug('Métodos detectados en IntegrationsApi', methods);
-
-      } catch (e) {
-        console.error(e);
-        userEl.textContent = 'Error: ' + (e.message || JSON.stringify(e));
-        logDebug('Fallo al iniciar Genesys', {
-          message: e.message,
-          stack: e.stack,
-          raw: e
+      } catch (error) {
+        console.error(error);
+        genesysUserEl.textContent = 'Error: ' + (error.message || String(error));
+        logDebug('Error al inicializar Genesys', {
+          message: error.message,
+          stack: error.stack
         });
       }
     }
 
-    async function executeDataActionViaSdk(actionId, payload) {
-      if (!integrationsApiRef) throw new Error('IntegrationsApi no inicializado');
+    async function executeDataAction() {
+      const values = getFormValues();
+      logDebug('Formulario actual', values);
 
-      const candidateMethods = [
-        'postIntegrationsActionExecute',
-        'postIntegrationsActionsExecute',
-        'postIntegrationsActionExecuteWithHttpInfo',
-        'postIntegrationsActionsExecuteWithHttpInfo'
-      ];
-
-      for (const methodName of candidateMethods) {
-        if (typeof integrationsApiRef[methodName] === 'function') {
-          logDebug('Intentando ejecutar Data Action con SDK', { methodName, actionId, payload });
-
-          if (methodName.includes('WithHttpInfo')) {
-            return await integrationsApiRef[methodName](actionId, payload);
-          }
-
-          return await integrationsApiRef[methodName](actionId, payload);
-        }
+      if (!values.telefono) {
+        throw new Error('El campo Numero de Telefono es obligatorio');
       }
 
-      throw new Error('No encontré un método compatible en IntegrationsApi para ejecutar el Data Action');
-    }
+      if (!apiClient) {
+        throw new Error('ApiClient no inicializado');
+      }
 
-    async function executeDataActionViaFetch(actionId, payload) {
-      if (!apiClientRef) throw new Error('ApiClient no inicializado');
+      const token = apiClient.authData && apiClient.authData.accessToken;
+      if (!token) {
+        throw new Error('No se encontró access token');
+      }
 
-      const accessToken = apiClientRef.authData?.accessToken;
-      if (!accessToken) throw new Error('No se encontró access token en ApiClient');
+      const payload = buildPayload();
+      const url = `https://${regionHost}/api/v2/integrations/actions/${CONFIG.dataActionId}/execute`;
 
-      const basePath = apiClientRef.environment;
-      const url = `https://${basePath}/api/v2/integrations/actions/${actionId}/execute`;
-
-      logDebug('Intentando ejecutar Data Action vía fetch', { url, payload });
+      logDebug('Ejecutando Data Action', {
+        url,
+        actionId: CONFIG.dataActionId,
+        payload
+      });
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
 
-      const text = await response.text();
-      let parsed;
+      const rawText = await response.text();
+      let parsedBody;
       try {
-        parsed = text ? JSON.parse(text) : null;
-      } catch {
-        parsed = text;
+        parsedBody = rawText ? JSON.parse(rawText) : null;
+      } catch (e) {
+        parsedBody = rawText;
       }
+
+      logDebug('Respuesta HTTP del Data Action', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        body: parsedBody
+      });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText} - ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
       }
 
-      return parsed;
+      return parsedBody;
     }
 
-    async function handleAceptar() {
+    async function onAceptarClick() {
+      btnAceptarEl.disabled = true;
       try {
-        const values = getFormValues();
-        logDebug('Click en Aceptar. Valores actuales del formulario', values);
-
-        if (!values.telefono) {
-          throw new Error('Debes capturar Numero de Telefono antes de ejecutar el Data Action');
-        }
-
-        const payload = buildDataActionPayload();
-        logDebug('Payload a enviar al Data Action', payload);
-
-        let result;
-        try {
-          result = await executeDataActionViaSdk(DATA_ACTION_CONFIG.actionId, payload);
-          logDebug('Data Action ejecutado con SDK correctamente', result);
-        } catch (sdkError) {
-          logDebug('Fallo ejecución vía SDK, probando fallback REST', {
-            message: sdkError.message,
-            stack: sdkError.stack
-          });
-          result = await executeDataActionViaFetch(DATA_ACTION_CONFIG.actionId, payload);
-          logDebug('Data Action ejecutado con fetch correctamente', result);
-        }
-
+        logDebug('Botón Aceptar presionado');
+        const result = await executeDataAction();
+        logDebug('Data Action ejecutado correctamente', result);
         alert('Data Action ejecutado correctamente. Revisa el panel Debug.');
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error(error);
         logDebug('Error al ejecutar el Data Action', {
-          message: e.message,
-          stack: e.stack,
-          raw: e
+          message: error.message,
+          stack: error.stack
         });
-        alert('Ocurrió un error al ejecutar el Data Action. Revisa el panel Debug y la consola.');
+        alert('Error al ejecutar el Data Action. Revisa Debug y consola.');
+      } finally {
+        btnAceptarEl.disabled = false;
       }
     }
 
-    btnAceptar.addEventListener('click', handleAceptar);
+    tipoGestionEl.addEventListener('change', (event) => {
+      renderFields(event.target.value);
+      logDebug('Tipo cambiado', { tipo: event.target.value });
+    });
+
+    btnAceptarEl.addEventListener('click', onAceptarClick);
+
+    renderFields(tipoGestionEl.value);
+    logDebug('Formulario renderizado', { tipoInicial: tipoGestionEl.value });
 
     window.addEventListener('load', initGenesys);
   </script>
