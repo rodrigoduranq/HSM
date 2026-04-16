@@ -336,7 +336,11 @@
       }
 
       const payload = buildPayload();
-      const url = `https://${regionHost}/api/v2/integrations/actions/${CONFIG.dataActionId}/execute`;
+      const apiHost = regionHost.startsWith('api.')
+      ? regionHost
+      : `api.${regionHost}`;
+
+      const url = `https://${apiHost}/api/v2/integrations/actions/${CONFIG.dataActionId}/execute`;
 
       logDebug('Ejecutando Data Action', {
         url,
