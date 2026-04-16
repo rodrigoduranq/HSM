@@ -127,10 +127,16 @@
         </div>
 
         <div class="actions">
-          <button id="btnAceptar">Aceptar</button>
+          <button id="btnAceptar" type="button">Aceptar</button>
+        </div>
+
+        <div class="genesys-user" style="background:#0f172a;color:#e5e7eb;font-family:monospace;white-space:pre-wrap;max-height:260px;overflow:auto;">
+          <strong style="color:#93c5fd;">Debug:</strong>
+          <div id="debugLog" style="margin-top:6px; font-size:12px; line-height:1.45;">Esperando acciones...</div>
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <script>
@@ -162,6 +168,43 @@
     const tipo = document.getElementById('tipoGestion');
     const container = document.getElementById('dynamicFields');
     const userEl = document.getElementById('genesysUser');
+    const btnAceptar = document.getElementById('btnAceptar');
+    const debugLog = document.getElementById('debugLog');
+
+    let platformClientRef = null;
+    let apiClientRef = null;
+    let integrationsApiRef = null;
+    let usersApiRef = null;
+
+    const DATA_ACTION_CONFIG = {
+      actionId: 'custom_-_cf9ac7a1-adee-4789-881f-259af913669f',
+      payloadBase: {
+        id: '1817712608858479',
+        name: 'test_genesys',
+        from: '5491168690967',
+        dato: '{"nombre":"Rodrigo Duran","dato":"Prueba"}'
+      }
+    };
+
+    function logDebug(message, data) {
+      const ts = new Date().toLocaleTimeString();
+      let line = `[${ts}] ${message}`;
+
+      if (data !== undefined) {
+        try {
+          line += '
+' + (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+        } catch (err) {
+          line += '
+' + String(data);
+        }
+      }
+
+      console.log(message, data ?? '');
+      debugLog.textContent = `${line}
+
+${debugLog.textContent}`;
+    }
 
     function render(type) {
       container.innerHTML = templates[type].map(f => `
@@ -172,34 +215,178 @@
       `).join('');
     }
 
-    tipo.addEventListener('change', e => render(e.target.value));
+    function getFormValues() {
+      return {
+        tipo: tipo.value,
+        telefono: document.getElementById('telefono')?.value?.trim() || '',
+        nombre: document.getElementById('nombre')?.value?.trim() || '',
+        idReclamo: document.getElementById('idReclamo')?.value?.trim() || '',
+        dni: document.getElementById('dni')?.value?.trim() || ''
+      };
+    }
+
+    function buildDataActionPayload() {
+      const values = getFormValues();
+      return {
+        ...DATA_ACTION_CONFIG.payloadBase,
+        to: values.telefono
+      };
+    }
+
+    tipo.addEventListener('change', e => {
+      render(e.target.value);
+      logDebug('Tipo de gestión cambiado', { tipo: e.target.value });
+    });
+
     render(tipo.value);
 
     const CONFIG = {
-      clientId: '2502f686-e6af-486a-b9a0-8b48eb07bc41',
+      clientId: 'REEMPLAZAR_CON_TU_CLIENT_ID',
       redirectUri: window.location.origin + window.location.pathname,
       environment: 'sa_east_1'
     };
 
     async function initGenesys() {
       try {
+        logDebug('Inicializando SDK Genesys...', CONFIG);
+
         const platformClient = window.require('platformClient');
+        platformClientRef = platformClient;
         const client = platformClient.ApiClient.instance;
         const usersApi = new platformClient.UsersApi();
+        const integrationsApi = new platformClient.IntegrationsApi();
 
         const env = platformClient.PureCloudRegionHosts[CONFIG.environment];
+        if (!env) throw new Error('Region inválida: ' + CONFIG.environment);
+
         client.setEnvironment(env);
+        logDebug('Environment configurado', env);
 
         await client.loginImplicitGrant(CONFIG.clientId, CONFIG.redirectUri);
+        logDebug('Login OK');
 
         const me = await usersApi.getUsersMe();
         userEl.textContent = me.name;
+        logDebug('Usuario autenticado', me);
+
+        apiClientRef = client;
+        usersApiRef = usersApi;
+        integrationsApiRef = integrationsApi;
+
+        const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(integrationsApi))
+          .filter(name => /action|integrations/i.test(name))
+          .sort();
+        logDebug('Métodos detectados en IntegrationsApi', methods);
 
       } catch (e) {
         console.error(e);
         userEl.textContent = 'Error: ' + (e.message || JSON.stringify(e));
+        logDebug('Fallo al iniciar Genesys', {
+          message: e.message,
+          stack: e.stack,
+          raw: e
+        });
       }
     }
+
+    async function executeDataActionViaSdk(actionId, payload) {
+      if (!integrationsApiRef) throw new Error('IntegrationsApi no inicializado');
+
+      const candidateMethods = [
+        'postIntegrationsActionExecute',
+        'postIntegrationsActionsExecute',
+        'postIntegrationsActionExecuteWithHttpInfo',
+        'postIntegrationsActionsExecuteWithHttpInfo'
+      ];
+
+      for (const methodName of candidateMethods) {
+        if (typeof integrationsApiRef[methodName] === 'function') {
+          logDebug('Intentando ejecutar Data Action con SDK', { methodName, actionId, payload });
+
+          if (methodName.includes('WithHttpInfo')) {
+            return await integrationsApiRef[methodName](actionId, payload);
+          }
+
+          return await integrationsApiRef[methodName](actionId, payload);
+        }
+      }
+
+      throw new Error('No encontré un método compatible en IntegrationsApi para ejecutar el Data Action');
+    }
+
+    async function executeDataActionViaFetch(actionId, payload) {
+      if (!apiClientRef) throw new Error('ApiClient no inicializado');
+
+      const accessToken = apiClientRef.authData?.accessToken;
+      if (!accessToken) throw new Error('No se encontró access token en ApiClient');
+
+      const basePath = apiClientRef.environment;
+      const url = `https://${basePath}/api/v2/integrations/actions/${actionId}/execute`;
+
+      logDebug('Intentando ejecutar Data Action vía fetch', { url, payload });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const text = await response.text();
+      let parsed;
+      try {
+        parsed = text ? JSON.parse(text) : null;
+      } catch {
+        parsed = text;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText} - ${typeof parsed === 'string' ? parsed : JSON.stringify(parsed)}`);
+      }
+
+      return parsed;
+    }
+
+    async function handleAceptar() {
+      try {
+        const values = getFormValues();
+        logDebug('Click en Aceptar. Valores actuales del formulario', values);
+
+        if (!values.telefono) {
+          throw new Error('Debes capturar Numero de Telefono antes de ejecutar el Data Action');
+        }
+
+        const payload = buildDataActionPayload();
+        logDebug('Payload a enviar al Data Action', payload);
+
+        let result;
+        try {
+          result = await executeDataActionViaSdk(DATA_ACTION_CONFIG.actionId, payload);
+          logDebug('Data Action ejecutado con SDK correctamente', result);
+        } catch (sdkError) {
+          logDebug('Fallo ejecución vía SDK, probando fallback REST', {
+            message: sdkError.message,
+            stack: sdkError.stack
+          });
+          result = await executeDataActionViaFetch(DATA_ACTION_CONFIG.actionId, payload);
+          logDebug('Data Action ejecutado con fetch correctamente', result);
+        }
+
+        alert('Data Action ejecutado correctamente. Revisa el panel Debug.');
+      } catch (e) {
+        console.error(e);
+        logDebug('Error al ejecutar el Data Action', {
+          message: e.message,
+          stack: e.stack,
+          raw: e
+        });
+        alert('Ocurrió un error al ejecutar el Data Action. Revisa el panel Debug y la consola.');
+      }
+    }
+
+    btnAceptar.addEventListener('click', handleAceptar);
 
     window.addEventListener('load', initGenesys);
   </script>
