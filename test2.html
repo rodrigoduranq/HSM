@@ -157,7 +157,7 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v7</p>
+      <p class="subtitle">Gestión rápida v8</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
@@ -281,7 +281,7 @@
         name: 'test_genesys',
         from: '5491168690967',
         to: getFieldValue('telefono'),
-        dato: JSON.stringify({
+        parameters: JSON.stringify({
           C1: nombreCapturado,
           C2: genesysLoggedUserName
         })
