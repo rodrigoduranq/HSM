@@ -157,7 +157,7 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v10</p>
+      <p class="subtitle">Gestión rápida v11</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
@@ -280,6 +280,7 @@
         reclamo_pendiente_organismos: 'organismos_oficiales_pay_reclamo_pendiente',
         referidos: 'customer_service_referidos'
       };
+
       return map[tipo] || 'test_genesys';
     }
 
@@ -295,8 +296,6 @@
           C1: nombreCapturado,
           C2: genesysLoggedUserName
         })
-      };
-    })
       };
     }
 
@@ -355,10 +354,7 @@
       }
 
       const payload = buildPayload();
-      const apiHost = regionHost.startsWith('api.')
-      ? regionHost
-      : `api.${regionHost}`;
-
+      const apiHost = regionHost.startsWith('api.') ? regionHost : `api.${regionHost}`;
       const url = `https://${apiHost}/api/v2/integrations/actions/${CONFIG.dataActionId}/execute`;
 
       logDebug('Ejecutando Data Action', {
@@ -419,13 +415,19 @@
 
     tipoGestionEl.addEventListener('change', (event) => {
       renderFields(event.target.value);
-      logDebug('Tipo cambiado', { tipo: event.target.value });
+      logDebug('Tipo cambiado', {
+        tipo: event.target.value,
+        dataActionName: getActionNameByTipo(event.target.value)
+      });
     });
 
     btnAceptarEl.addEventListener('click', onAceptarClick);
 
     renderFields(tipoGestionEl.value);
-    logDebug('Formulario renderizado', { tipoInicial: tipoGestionEl.value });
+    logDebug('Formulario renderizado', {
+      tipoInicial: tipoGestionEl.value,
+      dataActionNameInicial: getActionNameByTipo(tipoGestionEl.value)
+    });
 
     window.addEventListener('load', initGenesys);
   </script>
