@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulario de Reclamos</title>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 20px;
+    }
+
+    .subtitle {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .field {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    select,
+    input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      height: 32px;
+      background: #fff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    .footer {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .genesys-user {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      font-size: 12px;
+    }
+
+    .debug-panel {
+      padding: 10px;
+      border-radius: 8px;
+      background: #071533;
+      color: #e5e7eb;
+      border: 1px solid #0f274f;
+      font-size: 12px;
+      font-family: Consolas, Monaco, monospace;
+      white-space: pre-wrap;
+      max-height: 260px;
+      overflow: auto;
+      line-height: 1.45;
+    }
+
+    .debug-title {
+      color: #93c5fd;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    button {
+      border: none;
+      background: var(--primary);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      height: 34px;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <script src="https://sdk-cdn.mypurecloud.com/javascript/latest/purecloud-platform-client-v2.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Reclamos</h1>
+      <p class="subtitle">Gestión rápida v10</p>
+
+      <div class="field">
+        <label for="tipoGestion">Tipo</label>
+        <select id="tipoGestion">
+          <option value="reclamo_finalizado" selected>Reclamo Finalizado</option>
+          <option value="reclamo_pendiente">Reclamo Pendiente</option>
+          <option value="reclamo_pendiente_organismos">Reclamo Pendiente Organismos Oficiales</option>
+          <option value="referidos">Referidos</option>
+        </select>
+      </div>
+
+      <div class="grid" id="dynamicFields"></div>
+
+      <div class="footer">
+        <div class="genesys-user">
+          <strong>Usuario:</strong>
+          <span id="genesysUser">Cargando...</span>
+        </div>
+
+        <div class="actions">
+          <button id="btnAceptar" type="button">Aceptar</button>
+        </div>
+
+        <div class="debug-panel">
+          <div class="debug-title">Debug:</div>
+          <div id="debugLog">Esperando acciones...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const templates = {
+      reclamo_finalizado: [
+        { id: 'telefono', label: 'Numero de Telefono', full: true },
+        { id: 'nombre', label: 'Nombre Cliente', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
+        { id: 'dni', label: 'DNI', full: false }
+      ],
+      reclamo_pendiente: [
+        { id: 'telefono', label: 'Numero de Telefono', full: true },
+        { id: 'nombre', label: 'Nombre Cliente', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
+        { id: 'dni', label: 'DNI', full: false }
+      ],
+      reclamo_pendiente_organismos: [
+        { id: 'telefono', label: 'Numero de Telefono', full: true },
+        { id: 'nombre', label: 'Nombre Cliente', full: true },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
+        { id: 'dni', label: 'DNI', full: false }
+      ],
+      referidos: [
+        { id: 'telefono', label: 'Numero de Telefono', full: true },
+        { id: 'nombre', label: 'Nombre del Cliente', full: true }
+      ]
+    };
+
+    const tipoGestionEl = document.getElementById('tipoGestion');
+    const dynamicFieldsEl = document.getElementById('dynamicFields');
+    const genesysUserEl = document.getElementById('genesysUser');
+    const btnAceptarEl = document.getElementById('btnAceptar');
+    const debugLogEl = document.getElementById('debugLog');
+
+    let apiClient = null;
+    let regionHost = null;
+    let genesysLoggedUserName = '';
+
+    const CONFIG = {
+      clientId: '2502f686-e6af-486a-b9a0-8b48eb07bc41',
+      redirectUri: window.location.origin + window.location.pathname,
+      environmentKey: 'sa_east_1',
+      dataActionId: 'custom_-_cf9ac7a1-adee-4789-881f-259af913669f'
+    };
+
+    function logDebug(message, data) {
+      const timestamp = new Date().toLocaleTimeString();
+      let text = `[${timestamp}] ${message}`;
+
+      if (typeof data !== 'undefined') {
+        try {
+          text += '\n' + JSON.stringify(data, null, 2);
+        } catch (err) {
+          text += '\n' + String(data);
+        }
+      }
+
+      console.log(message, data ?? '');
+      debugLogEl.textContent = `${text}\n\n${debugLogEl.textContent}`;
+    }
+
+    function renderFields(type) {
+      const fields = templates[type] || [];
+      dynamicFieldsEl.innerHTML = fields.map(field => `
+        <div class="field ${field.full ? 'full' : ''}">
+          <label for="${field.id}">${field.label}</label>
+          <input id="${field.id}" name="${field.id}" autocomplete="off" />
+        </div>
+      `).join('');
+    }
+
+    function getFieldValue(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+
+    function getFormValues() {
+      return {
+        tipo: tipoGestionEl.value,
+        telefono: getFieldValue('telefono'),
+        nombre: getFieldValue('nombre'),
+        idReclamo: getFieldValue('idReclamo'),
+        dni: getFieldValue('dni')
+      };
+    }
+
+    function getActionNameByTipo(tipo) {
+      const map = {
+        reclamo_finalizado: 'bo_pay_reclamo_finalizado',
+        reclamo_pendiente: 'bo_pay_reclamo_pendiente',
+        reclamo_pendiente_organismos: 'organismos_oficiales_pay_reclamo_pendiente',
+        referidos: 'customer_service_referidos'
+      };
+
+      return map[tipo] || 'test_genesys';
+    }
+
+    function buildPayload() {
+      const nombreCapturado = getFieldValue('nombre');
+      const idReclamoCapturado = getFieldValue('idReclamo');
+      const dniCapturado = getFieldValue('dni');
+
+      const datoPayload = {
+        C1: nombreCapturado,
+        C2: genesysLoggedUserName
+      };
+
+      if (idReclamoCapturado) {
+        datoPayload.C3 = idReclamoCapturado;
+      }
+
+      if (dniCapturado) {
+        datoPayload.C4 = dniCapturado;
+      }
+
+      return {
+        id: '1817712608858479',
+        name: getActionNameByTipo(tipoGestionEl.value),
+        from: '5491168690967',
+        to: getFieldValue('telefono'),
+        dato: JSON.stringify(datoPayload)
+      };
+    }
+
+    async function initGenesys() {
+      try {
+        logDebug('Inicializando Genesys Cloud');
+
+        const platformClient = window.platformClient || (window.require ? window.require('platformClient') : null);
+        if (!platformClient) {
+          throw new Error('No se encontró platformClient en la página');
+        }
+
+        apiClient = platformClient.ApiClient.instance;
+        const usersApi = new platformClient.UsersApi();
+
+        regionHost = platformClient.PureCloudRegionHosts[CONFIG.environmentKey];
+        if (!regionHost) {
+          throw new Error('No se encontró la región en PureCloudRegionHosts: ' + CONFIG.environmentKey);
+        }
+
+        apiClient.setEnvironment(regionHost);
+        logDebug('Región configurada', { environmentKey: CONFIG.environmentKey, host: regionHost });
+
+        await apiClient.loginImplicitGrant(CONFIG.clientId, CONFIG.redirectUri);
+        logDebug('Login OK');
+
+        const me = await usersApi.getUsersMe();
+        genesysLoggedUserName = me.name || me.username || 'Sin nombre';
+        genesysUserEl.textContent = genesysLoggedUserName;
+        logDebug('Usuario autenticado', me);
+      } catch (error) {
+        console.error(error);
+        genesysUserEl.textContent = 'Error: ' + (error.message || String(error));
+        logDebug('Error al inicializar Genesys', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
+    }
+
+    async function executeDataAction() {
+      const values = getFormValues();
+      logDebug('Formulario actual', values);
+
+      if (!values.telefono) {
+        throw new Error('El campo Numero de Telefono es obligatorio');
+      }
+
+      if (!apiClient) {
+        throw new Error('ApiClient no inicializado');
+      }
+
+      const token = apiClient.authData && apiClient.authData.accessToken;
+      if (!token) {
+        throw new Error('No se encontró access token');
+      }
+
+      const payload = buildPayload();
+      const apiHost = regionHost.startsWith('api.') ? regionHost : `api.${regionHost}`;
+      const url = `https://${apiHost}/api/v2/integrations/actions/${CONFIG.dataActionId}/execute`;
+
+      logDebug('Ejecutando Data Action', {
+        url,
+        actionId: CONFIG.dataActionId,
+        payload
+      });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const rawText = await response.text();
+      let parsedBody;
+      try {
+        parsedBody = rawText ? JSON.parse(rawText) : null;
+      } catch (e) {
+        parsedBody = rawText;
+      }
+
+      logDebug('Respuesta HTTP del Data Action', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        body: parsedBody
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+
+      return parsedBody;
+    }
+
+    async function onAceptarClick() {
+      btnAceptarEl.disabled = true;
+      try {
+        logDebug('Botón Aceptar presionado');
+        const result = await executeDataAction();
+        logDebug('Data Action ejecutado correctamente', result);
+        alert('Data Action ejecutado correctamente. Revisa el panel Debug.');
+      } catch (error) {
+        console.error(error);
+        logDebug('Error al ejecutar el Data Action', {
+          message: error.message,
+          stack: error.stack
+        });
+        alert('Error al ejecutar el Data Action. Revisa Debug y consola.');
+      } finally {
+        btnAceptarEl.disabled = false;
+      }
+    }
+
+    tipoGestionEl.addEventListener('change', (event) => {
+      renderFields(event.target.value);
+      logDebug('Tipo cambiado', {
+        tipo: event.target.value,
+        dataActionName: getActionNameByTipo(event.target.value)
+      });
+    });
+
+    btnAceptarEl.addEventListener('click', onAceptarClick);
+
+    renderFields(tipoGestionEl.value);
+    logDebug('Formulario renderizado', {
+      tipoInicial: tipoGestionEl.value,
+      dataActionNameInicial: getActionNameByTipo(tipoGestionEl.value)
+    });
+
+    window.addEventListener('load', initGenesys);
+  </script>
+</body>
+</html>
