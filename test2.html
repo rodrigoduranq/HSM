@@ -157,7 +157,7 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v9</p>
+      <p class="subtitle">Gestión rápida v10</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
@@ -229,7 +229,7 @@
       clientId: '2502f686-e6af-486a-b9a0-8b48eb07bc41',
       redirectUri: window.location.origin + window.location.pathname,
       environmentKey: 'sa_east_1',
-      dataActionId: 'custom_-_2e78a098-2689-49af-b613-f62189bb0e1b'
+      dataActionId: 'custom_-_cf9ac7a1-adee-4789-881f-259af913669f'
     };
 
     function logDebug(message, data) {
@@ -273,18 +273,30 @@
       };
     }
 
+    function getActionNameByTipo(tipo) {
+      const map = {
+        reclamo_finalizado: 'bo_pay_reclamo_finalizado',
+        reclamo_pendiente: 'bo_pay_reclamo_pendiente',
+        reclamo_pendiente_organismos: 'organismos_oficiales_pay_reclamo_pendiente',
+        referidos: 'customer_service_referidos'
+      };
+      return map[tipo] || 'test_genesys';
+    }
+
     function buildPayload() {
       const nombreCapturado = getFieldValue('nombre');
 
       return {
         id: '1817712608858479',
-        name: 'test_genesys',
+        name: getActionNameByTipo(tipoGestionEl.value),
         from: '5491168690967',
         to: getFieldValue('telefono'),
-        parameters: JSON.stringify({
+        dato: JSON.stringify({
           C1: nombreCapturado,
           C2: genesysLoggedUserName
         })
+      };
+    })
       };
     }
 
