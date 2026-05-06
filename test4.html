@@ -157,7 +157,7 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v13</p>
+      <p class="subtitle">Gestión rápida v10</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
@@ -278,10 +278,21 @@
         reclamo_finalizado: 'bo_pay_reclamo_finalizado',
         reclamo_pendiente: 'bo_pay_reclamo_pendiente',
         reclamo_pendiente_organismos: 'organismos_oficiales_pay_reclamo_pendiente',
-        referidos: 'test_genesys'
+        referidos: 'customer_service_referidos'
       };
 
-      return map[tipo] || 'test_genesys';
+      return map[tipo];
+    }
+
+    function getIdByTipo(tipo) {
+      const map = {
+        reclamo_finalizado: '4355743861349881',
+        reclamo_pendiente: '1271795827614498',
+        reclamo_pendiente_organismos: '918588210759458',
+        referidos: '2359236247920576'
+      };
+
+      return map[tipo];
     }
 
     function buildPayload() {
@@ -303,7 +314,7 @@
       }
 
       return {
-        id: '1817712608858479',
+        id: getIdByTipo(tipoGestionEl.value),
         name: getActionNameByTipo(tipoGestionEl.value),
         from: '5491168690967',
         to: getFieldValue('telefono'),
@@ -429,7 +440,8 @@
       renderFields(event.target.value);
       logDebug('Tipo cambiado', {
         tipo: event.target.value,
-        dataActionName: getActionNameByTipo(event.target.value)
+        dataActionName: getActionNameByTipo(event.target.value),
+        dataActionId: getIdByTipo(event.target.value)
       });
     });
 
@@ -438,7 +450,8 @@
     renderFields(tipoGestionEl.value);
     logDebug('Formulario renderizado', {
       tipoInicial: tipoGestionEl.value,
-      dataActionNameInicial: getActionNameByTipo(tipoGestionEl.value)
+      dataActionNameInicial: getActionNameByTipo(tipoGestionEl.value),
+      dataActionIdInicial: getIdByTipo(tipoGestionEl.value)
     });
 
     window.addEventListener('load', initGenesys);
