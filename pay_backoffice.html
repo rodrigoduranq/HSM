@@ -157,15 +157,17 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v13</p>
+      <p class="subtitle">Gestión rápida v16</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
         <select id="tipoGestion">
-          <option value="reclamo_finalizado" selected>Reclamo Finalizado</option>
-          <option value="reclamo_pendiente">Reclamo Pendiente</option>
-          <option value="reclamo_pendiente_organismos">Reclamo Pendiente Organismos Oficiales</option>
-          <option value="referidos">Referidos</option>
+          <option value="reclamo_finalizado" selected>[bo_pay_reclamo_finalizado]</option>
+          <option value="reclamo_pendiente">[bo_pay_reclamo_pendiente]</option>
+          <option value="reclamo_pendiente_organismos">[organismos_oficiales_pay_reclamo_pendiente]</option>
+          <option value="referidos_cat">[customer_service_referidos_cat]</option>
+          <option value="referidos_tp">[customer_service_referidos_tp]</option>
+          <option value="referidos_apex">[customer_service_referidos_apex]</option>
         </select>
       </div>
 
@@ -209,7 +211,19 @@
         { id: 'idReclamo', label: 'ID del Reclamo', full: false, type: 'text' },
         { id: 'dni', label: 'DNI', full: false, type: 'text' }
       ],
-      referidos: [
+      referidos_cat: [
+        { id: 'nombre', label: 'Nombre del Cliente', full: true, type: 'text' },
+        { id: 'fechaContactacion', label: 'Fecha de Contactacion', full: false, type: 'date' },
+        { id: 'horarioContactacion', label: 'Horario de Contactacion', full: false, type: 'time' },
+        { id: 'telefono', label: 'Numero de Telefono', full: true, type: 'tel' }
+      ],
+      referidos_tp: [
+        { id: 'nombre', label: 'Nombre del Cliente', full: true, type: 'text' },
+        { id: 'fechaContactacion', label: 'Fecha de Contactacion', full: false, type: 'date' },
+        { id: 'horarioContactacion', label: 'Horario de Contactacion', full: false, type: 'time' },
+        { id: 'telefono', label: 'Numero de Telefono', full: true, type: 'tel' }
+      ],
+      referidos_apex: [
         { id: 'nombre', label: 'Nombre del Cliente', full: true, type: 'text' },
         { id: 'fechaContactacion', label: 'Fecha de Contactacion', full: false, type: 'date' },
         { id: 'horarioContactacion', label: 'Horario de Contactacion', full: false, type: 'time' },
@@ -282,7 +296,9 @@
         reclamo_finalizado: 'bo_pay_reclamo_finalizado',
         reclamo_pendiente: 'bo_pay_reclamo_pendiente',
         reclamo_pendiente_organismos: 'organismos_oficiales_pay_reclamo_pendiente',
-        referidos: 'customer_service_referidos_cat'
+        referidos_cat: 'customer_service_referidos_cat',
+        referidos_tp: 'customer_service_referidos_tp',
+        referidos_apex: 'customer_service_referidos_apex'
       };
 
       return map[tipo];
@@ -293,7 +309,9 @@
         reclamo_finalizado: '4355743861349881',
         reclamo_pendiente: '1271795827614498',
         reclamo_pendiente_organismos: '918588210759458',
-        referidos: '2359236247920576'
+        referidos_cat: '2359236247920576',
+        referidos_tp: '971792941979992',
+        referidos_apex: '945780828312380'
       };
 
       return map[tipo];
@@ -310,7 +328,7 @@
 
       let datoPayload;
 
-      if (tipo === 'referidos') {
+      if (tipo === 'referidos_cat' || tipo === 'referidos_tp' || tipo === 'referidos_apex') {
         datoPayload = {
           C1: nombreCapturado,
           C2: genesysLoggedUserName,
