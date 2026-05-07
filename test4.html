@@ -157,7 +157,7 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v17</p>
+      <p class="subtitle">Gestión rápida v18</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
@@ -343,22 +343,13 @@
           C3: idReclamoCapturado || '',
           C4: dniCapturado || ''
         };
-      };
-
-        if (idReclamoCapturado) {
-          datoPayload.C3 = idReclamoCapturado;
-        }
-
-        if (dniCapturado) {
-          datoPayload.C4 = dniCapturado;
-        }
       }
 
       return {
         id: getIdByTipo(tipo),
         name: getActionNameByTipo(tipo),
         from: '5491180312371',
-        to: telefonoCapturado,
+        to: telefonoCapturado || '',
         dato: JSON.stringify(datoPayload)
       };
     }
