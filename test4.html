@@ -192,26 +192,28 @@
   <script>
     const templates = {
       reclamo_finalizado: [
-        { id: 'telefono', label: 'Numero de Telefono', full: true },
-        { id: 'nombre', label: 'Nombre Cliente', full: true },
-        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
-        { id: 'dni', label: 'DNI', full: false }
+        { id: 'telefono', label: 'Numero de Telefono', full: true, type: 'tel' },
+        { id: 'nombre', label: 'Nombre Cliente', full: true, type: 'text' },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false, type: 'text' },
+        { id: 'dni', label: 'DNI', full: false, type: 'text' }
       ],
       reclamo_pendiente: [
-        { id: 'telefono', label: 'Numero de Telefono', full: true },
-        { id: 'nombre', label: 'Nombre Cliente', full: true },
-        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
-        { id: 'dni', label: 'DNI', full: false }
+        { id: 'telefono', label: 'Numero de Telefono', full: true, type: 'tel' },
+        { id: 'nombre', label: 'Nombre Cliente', full: true, type: 'text' },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false, type: 'text' },
+        { id: 'dni', label: 'DNI', full: false, type: 'text' }
       ],
       reclamo_pendiente_organismos: [
-        { id: 'telefono', label: 'Numero de Telefono', full: true },
-        { id: 'nombre', label: 'Nombre Cliente', full: true },
-        { id: 'idReclamo', label: 'ID del Reclamo', full: false },
-        { id: 'dni', label: 'DNI', full: false }
+        { id: 'telefono', label: 'Numero de Telefono', full: true, type: 'tel' },
+        { id: 'nombre', label: 'Nombre Cliente', full: true, type: 'text' },
+        { id: 'idReclamo', label: 'ID del Reclamo', full: false, type: 'text' },
+        { id: 'dni', label: 'DNI', full: false, type: 'text' }
       ],
       referidos: [
-        { id: 'telefono', label: 'Numero de Telefono', full: true },
-        { id: 'nombre', label: 'Nombre del Cliente', full: true }
+        { id: 'nombre', label: 'Nombre del Cliente', full: true, type: 'text' },
+        { id: 'fechaContactacion', label: 'Fecha de Contactacion', full: false, type: 'date' },
+        { id: 'horarioContactacion', label: 'Horario de Contactacion', full: false, type: 'time' },
+        { id: 'telefono', label: 'Numero de Telefono', full: true, type: 'tel' }
       ]
     };
 
@@ -253,7 +255,7 @@
       dynamicFieldsEl.innerHTML = fields.map(field => `
         <div class="field ${field.full ? 'full' : ''}">
           <label for="${field.id}">${field.label}</label>
-          <input id="${field.id}" name="${field.id}" autocomplete="off" />
+          <input id="${field.id}" name="${field.id}" type="${field.type || 'text'}" autocomplete="off" />
         </div>
       `).join('');
     }
@@ -269,7 +271,9 @@
         telefono: getFieldValue('telefono'),
         nombre: getFieldValue('nombre'),
         idReclamo: getFieldValue('idReclamo'),
-        dni: getFieldValue('dni')
+        dni: getFieldValue('dni'),
+        fechaContactacion: getFieldValue('fechaContactacion'),
+        horarioContactacion: getFieldValue('horarioContactacion')
       };
     }
 
@@ -278,7 +282,7 @@
         reclamo_finalizado: 'bo_pay_reclamo_finalizado',
         reclamo_pendiente: 'bo_pay_reclamo_pendiente',
         reclamo_pendiente_organismos: 'organismos_oficiales_pay_reclamo_pendiente',
-        referidos: 'customer_service_referidos'
+        referidos: 'customer_service_referidos_cat'
       };
 
       return map[tipo];
@@ -289,35 +293,51 @@
         reclamo_finalizado: '4355743861349881',
         reclamo_pendiente: '1271795827614498',
         reclamo_pendiente_organismos: '918588210759458',
-        referidos: '2359236247920576'
+        referidos: '2359236247920570'
       };
 
       return map[tipo];
     }
 
     function buildPayload() {
+      const tipo = tipoGestionEl.value;
       const nombreCapturado = getFieldValue('nombre');
+      const telefonoCapturado = getFieldValue('telefono');
       const idReclamoCapturado = getFieldValue('idReclamo');
       const dniCapturado = getFieldValue('dni');
+      const fechaContactacionCapturada = getFieldValue('fechaContactacion');
+      const horarioContactacionCapturado = getFieldValue('horarioContactacion');
 
-      const datoPayload = {
-        C1: nombreCapturado,
-        C2: genesysLoggedUserName
-      };
+      let datoPayload;
 
-      if (idReclamoCapturado) {
-        datoPayload.C3 = idReclamoCapturado;
-      }
+      if (tipo === 'referidos') {
+        datoPayload = {
+          C1: nombreCapturado,
+          C2: genesysLoggedUserName,
+          C3: fechaContactacionCapturada,
+          C4: horarioContactacionCapturado,
+          C5: telefonoCapturado
+        };
+      } else {
+        datoPayload = {
+          C1: nombreCapturado,
+          C2: genesysLoggedUserName
+        };
 
-      if (dniCapturado) {
-        datoPayload.C4 = dniCapturado;
+        if (idReclamoCapturado) {
+          datoPayload.C3 = idReclamoCapturado;
+        }
+
+        if (dniCapturado) {
+          datoPayload.C4 = dniCapturado;
+        }
       }
 
       return {
-        id: getIdByTipo(tipoGestionEl.value),
-        name: getActionNameByTipo(tipoGestionEl.value),
-        from: '5491180312371',
-        to: getFieldValue('telefono'),
+        id: getIdByTipo(tipo),
+        name: getActionNameByTipo(tipo),
+        from: '5491168690967',
+        to: telefonoCapturado,
         dato: JSON.stringify(datoPayload)
       };
     }
