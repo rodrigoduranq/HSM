@@ -11,6 +11,7 @@
       --text: #111827;
       --muted: #6b7280;
       --border: #d1d5db;
+      --danger: #dc2626;
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
       --radius: 10px;
@@ -70,6 +71,13 @@
       font-size: 13px;
       height: 32px;
       background: #fff;
+      outline: none;
+    }
+
+    input.input-error,
+    select.input-error {
+      border-color: var(--danger) !important;
+      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12);
     }
 
     .grid {
@@ -157,7 +165,7 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v18</p>
+      <p class="subtitle">Gestión rápida v19</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
@@ -277,6 +285,34 @@
     function getFieldValue(id) {
       const el = document.getElementById(id);
       return el ? el.value.trim() : '';
+    }
+
+    function getVisibleInputs() {
+      return Array.from(dynamicFieldsEl.querySelectorAll('input'));
+    }
+
+    function clearFieldErrors() {
+      getVisibleInputs().forEach(input => input.classList.remove('input-error'));
+    }
+
+    function validateFormSimple() {
+      const inputs = getVisibleInputs();
+      const missing = [];
+
+      inputs.forEach(input => {
+        const value = input.value.trim();
+        if (!value) {
+          missing.push(input.id);
+          input.classList.add('input-error');
+        } else {
+          input.classList.remove('input-error');
+        }
+      });
+
+      return {
+        isValid: missing.length === 0,
+        missing
+      };
     }
 
     function getFormValues() {
@@ -451,8 +487,17 @@
 
     async function onAceptarClick() {
       btnAceptarEl.disabled = true;
+      clearFieldErrors();
       try {
         logDebug('Botón Aceptar presionado');
+
+        const validation = validateFormSimple();
+        if (!validation.isValid) {
+          logDebug('Validación fallida', { missing: validation.missing });
+          alert('Completa todos los campos visibles antes de continuar.');
+          return;
+        }
+
         const result = await executeDataAction();
         logDebug('Data Action ejecutado correctamente', result);
         alert('Data Action ejecutado correctamente. Revisa el panel Debug.');
