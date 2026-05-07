@@ -157,7 +157,7 @@
   <div class="container">
     <div class="card">
       <h1>Reclamos</h1>
-      <p class="subtitle">Gestión rápida v16</p>
+      <p class="subtitle">Gestión rápida v17</p>
 
       <div class="field">
         <label for="tipoGestion">Tipo</label>
@@ -330,17 +330,20 @@
 
       if (tipo === 'referidos_cat' || tipo === 'referidos_tp' || tipo === 'referidos_apex') {
         datoPayload = {
-          C1: nombreCapturado,
-          C2: genesysLoggedUserName,
-          C3: fechaContactacionCapturada,
-          C4: horarioContactacionCapturado,
-          C5: telefonoCapturado
+          C1: nombreCapturado || '',
+          C2: genesysLoggedUserName || '',
+          C3: fechaContactacionCapturada || '',
+          C4: horarioContactacionCapturado || '',
+          C5: telefonoCapturado || ''
         };
       } else {
         datoPayload = {
-          C1: nombreCapturado,
-          C2: genesysLoggedUserName
+          C1: nombreCapturado || '',
+          C2: genesysLoggedUserName || '',
+          C3: idReclamoCapturado || '',
+          C4: dniCapturado || ''
         };
+      };
 
         if (idReclamoCapturado) {
           datoPayload.C3 = idReclamoCapturado;
